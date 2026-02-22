@@ -58,17 +58,7 @@ local function CreateKeySystem()
     local LogoCorner = Instance.new("UICorner")
     LogoCorner.CornerRadius = UDim.new(0, 15)
     LogoCorner.Parent = Logo
-
-    local KeyTitle = Instance.new("TextLabel")
-    KeyTitle.Size = UDim2.new(1, 0, 0, 40)
-    KeyTitle.Position = UDim2.new(0, 0, 0, 105)
-    KeyTitle.BackgroundTransparency = 1
-    KeyTitle.Text = "🔐 IKAXZU HUB"
-    KeyTitle.TextColor3 = Color3.fromRGB(100, 100, 255)
-    KeyTitle.TextSize = 24
-    KeyTitle.Font = Enum.Font.GothamBold
-    KeyTitle.Parent = KeyFrame
-
+    
     local KeyInput = Instance.new("TextBox")
     KeyInput.Size = UDim2.new(0.85, 0, 0, 45)
     KeyInput.Position = UDim2.new(0.075, 0, 0, 150)
