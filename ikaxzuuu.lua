@@ -1,1453 +1,1138 @@
--- ============================================
--- AIMBOT FUNCTIONS (LENGKAP)
--- ============================================
+--[[
+    ⚡ IKAXZU HUB - MOBILE EDITION ⚡
+    🔑 Key: ikaxzu
+    📱 100% MOBILE OPTIMIZED
+    ✅ PASTI MUNCUL DI MOBILE!
+]]
 
-lib.AimbotFunctions = {}
+task.wait(1) -- Wait for game to load
 
-lib.AimbotFunctions.isPlayerVisible = function(player)
-    if not lib.AimbotWallCheck then
-        return true
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "IkaxzuHub"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999999
+
+-- Put in PlayerGui for mobile
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+print("✅ ScreenGui Created!")
+
+-- ============================================
+-- KEY SYSTEM
+-- ============================================
+local CORRECT_KEY = "ikaxzu"
+local keyEntered = false
+
+local KeyFrame = Instance.new("Frame")
+KeyFrame.Size = UDim2.new(0, 350, 0, 220)
+KeyFrame.Position = UDim2.new(0.5, -175, 0.5, -110)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+KeyFrame.BorderSizePixel = 0
+KeyFrame.Active = true
+KeyFrame.Parent = ScreenGui
+
+local KeyCorner = Instance.new("UICorner")
+KeyCorner.CornerRadius = UDim.new(0, 15)
+KeyCorner.Parent = KeyFrame
+
+local KeyStroke = Instance.new("UIStroke")
+KeyStroke.Color = Color3.fromRGB(100, 100, 255)
+KeyStroke.Thickness = 3
+KeyStroke.Parent = KeyFrame
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 70, 0, 70)
+Logo.Position = UDim2.new(0.5, -35, 0, 15)
+Logo.BackgroundTransparency = 1
+Logo.Image = "https://files.catbox.moe/8h7dgs.jpg"
+Logo.Parent = KeyFrame
+
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(0, 15)
+LogoCorner.Parent = Logo
+
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Size = UDim2.new(1, 0, 0, 35)
+KeyTitle.Position = UDim2.new(0, 0, 0, 90)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.Text = "🔐 IKAXZU HUB"
+KeyTitle.TextColor3 = Color3.fromRGB(100, 100, 255)
+KeyTitle.TextSize = 22
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.Parent = KeyFrame
+
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(0.85, 0, 0, 40)
+KeyInput.Position = UDim2.new(0.075, 0, 0, 130)
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+KeyInput.PlaceholderText = "Tap here, enter: ikaxzu"
+KeyInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.white
+KeyInput.TextSize = 16
+KeyInput.Font = Enum.Font.Gotham
+KeyInput.BorderSizePixel = 0
+KeyInput.ClearTextOnFocus = true
+KeyInput.Parent = KeyFrame
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 10)
+InputCorner.Parent = KeyInput
+
+local SubmitButton = Instance.new("TextButton")
+SubmitButton.Size = UDim2.new(0.85, 0, 0, 40)
+SubmitButton.Position = UDim2.new(0.075, 0, 0, 175)
+SubmitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+SubmitButton.Text = "✓ SUBMIT KEY"
+SubmitButton.TextColor3 = Color3.white
+SubmitButton.TextSize = 18
+SubmitButton.Font = Enum.Font.GothamBold
+SubmitButton.BorderSizePixel = 0
+SubmitButton.Parent = KeyFrame
+
+local SubmitCorner = Instance.new("UICorner")
+SubmitCorner.CornerRadius = UDim.new(0, 10)
+SubmitCorner.Parent = SubmitButton
+
+print("✅ Key System UI Created!")
+
+SubmitButton.MouseButton1Click:Connect(function()
+    print("🔑 Checking key...")
+    if KeyInput.Text == CORRECT_KEY then
+        print("✅ Correct Key!")
+        keyEntered = true
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "✓ Loading..."
+        
+        local tween = TweenService:Create(KeyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), 
+            {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+        tween:Play()
+        task.wait(0.5)
+        KeyFrame:Destroy()
+    else
+        print("❌ Wrong Key!")
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "❌ Wrong! Try: ikaxzu"
+        KeyFrame.BackgroundColor3 = Color3.fromRGB(40, 10, 10)
+        task.wait(0.5)
+        KeyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        KeyInput.PlaceholderText = "Tap here, enter: ikaxzu"
+    end
+end)
+
+repeat task.wait(0.1) until keyEntered
+
+print("🎮 Loading Main Hub...")
+
+-- ============================================
+-- LIBRARY
+-- ============================================
+local lib = {}
+
+-- Settings
+lib.ESPEnabled = false
+lib.GeneratorESPEnabled = false
+lib.RGBESPEnabled = false
+lib.SuperESPEnabled = false
+lib.RGBESPSpeed = 1
+lib.SuperESPSpeed = 1
+
+lib.KillerColor = Color3.fromRGB(255, 0, 0)
+lib.SurvivorColor = Color3.fromRGB(0, 255, 0)
+lib.GeneratorColor = Color3.fromRGB(255, 255, 0)
+
+lib.walkSpeedActive = false
+lib.walkSpeed = 16
+lib.JumpPowerEnabled = false
+lib.JumpPowerValue = 50
+lib.NoclipEnabled = false
+lib.GodModeEnabled = false
+lib.AntiStunEnabled = false
+
+lib.NoFogEnabled = false
+lib.CrosshairEnabled = false
+
+lib.AimbotEnabled = false
+lib.AimbotFOV = 50
+lib.AimbotSmoothness = 10
+lib.AimbotTeamCheck = true
+
+-- Storage
+lib.ESPFolders = {}
+lib.GeneratorESPItems = {}
+lib.Connections = {}
+lib._cache = {roleCache = {}}
+
+-- ============================================
+-- HELPER FUNCTIONS
+-- ============================================
+lib.GetRainbowColor = function(speed)
+    local hue = (tick() * speed * 100) % 255 / 255
+    return Color3.fromHSV(hue, 1, 1)
+end
+
+lib.GetSuperESPColor = function(baseColor, time, speed)
+    local offset = math.sin(time * speed) * 0.5 + 0.5
+    return Color3.new(
+        math.clamp(baseColor.R * (0.5 + offset * 0.5), 0, 1),
+        math.clamp(baseColor.G * (0.5 + offset * 0.5), 0, 1),
+        math.clamp(baseColor.B * (0.5 + offset * 0.5), 0, 1)
+    )
+end
+
+lib.IsPlayerKiller = function(player)
+    if not player or not player.Character then return false end
+    
+    if lib._cache.roleCache[player.UserId] then
+        local cached = lib._cache.roleCache[player.UserId]
+        if tick() - cached.time < 5 then
+            return cached.isKiller
+        end
     end
     
     local character = player.Character
-    if not character then return false end
+    local isKiller = character:FindFirstChild("Knife") ~= nil or
+                     character:FindFirstChild("Weapon") ~= nil or
+                     (player:FindFirstChild("Backpack") and player.Backpack:FindFirstChild("Knife") ~= nil)
     
-    local head = character:FindFirstChild("Head")
-    if not head then return false end
-    
-    local camera = Workspace.CurrentCamera
-    local cameraPos = camera.CFrame.Position
-    local direction = (head.Position - cameraPos).Unit
-    local distance = (head.Position - cameraPos).Magnitude
-    
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {LocalPlayer.Character, character}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rayParams.IgnoreWater = true
-    
-    local result = Workspace:Raycast(cameraPos, direction * distance, rayParams)
-    return result == nil
+    lib._cache.roleCache[player.UserId] = {isKiller = isKiller, time = tick()}
+    return isKiller
 end
+
+lib.IsPlayerSpectator = function(player)
+    if not player or not player.Character then return true end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    return not humanoid or humanoid.Health <= 0
+end
+
+-- ============================================
+-- ESP FUNCTIONS
+-- ============================================
+lib.CreateESP = function(player)
+    task.spawn(function()
+        pcall(function()
+            if player == LocalPlayer or lib.IsPlayerSpectator(player) then return end
+            
+            lib.RemoveESP(player)
+            
+            local character = player.Character
+            if not character then return end
+            
+            local folder = Instance.new("Folder")
+            folder.Name = "ESP_" .. player.Name
+            folder.Parent = character
+            
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.Adornee = character
+            highlight.FillColor = lib.IsPlayerKiller(player) and lib.KillerColor or lib.SurvivorColor
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineTransparency = 0
+            highlight.Parent = folder
+            
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESPBillboard"
+            billboard.Adornee = character:FindFirstChild("Head")
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = folder
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Name = "ESPName"
+            nameLabel.Size = UDim2.new(1, 0, 1, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = player.Name
+            nameLabel.TextColor3 = lib.IsPlayerKiller(player) and lib.KillerColor or lib.SurvivorColor
+            nameLabel.TextSize = 18
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextStrokeTransparency = 0
+            nameLabel.Parent = billboard
+            
+            lib.ESPFolders[player] = folder
+        end)
+    end)
+end
+
+lib.RemoveESP = function(player)
+    pcall(function()
+        if lib.ESPFolders[player] then
+            lib.ESPFolders[player]:Destroy()
+            lib.ESPFolders[player] = nil
+        end
+    end)
+end
+
+lib.ClearAllESP = function()
+    for player, folder in pairs(lib.ESPFolders) do
+        pcall(function()
+            if folder then folder:Destroy() end
+        end)
+    end
+    lib.ESPFolders = {}
+end
+
+lib.UpdateESP = function()
+    for player, folder in pairs(lib.ESPFolders) do
+        pcall(function()
+            if player and folder and player.Character then
+                local highlight = folder:FindFirstChild("ESPHighlight")
+                if highlight then
+                    highlight.FillColor = lib.IsPlayerKiller(player) and lib.KillerColor or lib.SurvivorColor
+                end
+                local billboard = folder:FindFirstChild("ESPBillboard")
+                if billboard then
+                    local nameLabel = billboard:FindFirstChild("ESPName")
+                    if nameLabel then
+                        nameLabel.TextColor3 = lib.IsPlayerKiller(player) and lib.KillerColor or lib.SurvivorColor
+                    end
+                end
+            end
+        end)
+    end
+end
+
+lib.FindAndCreateGenerators = function()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        pcall(function()
+            if string.find(string.lower(obj.Name), "generator") and obj:IsA("Model") then
+                if not lib.GeneratorESPItems[obj] then
+                    local folder = Instance.new("Folder")
+                    folder.Name = "GeneratorESP"
+                    folder.Parent = obj
+                    
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = obj
+                    highlight.FillColor = lib.GeneratorColor
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.FillTransparency = 0.5
+                    highlight.OutlineTransparency = 0
+                    highlight.Parent = folder
+                    
+                    lib.GeneratorESPItems[obj] = folder
+                end
+            end
+        end)
+    end
+end
+
+-- ============================================
+-- AIMBOT
+-- ============================================
+lib.AimbotFunctions = {}
 
 lib.AimbotFunctions.findClosestPlayer = function()
     local closestPlayer = nil
     local closestDistance = lib.AimbotFOV
-    local camera = Workspace.CurrentCamera
+    local camera = workspace.CurrentCamera
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            if lib.AimbotTeamCheck and not lib.IsPlayerKiller(player) then
-                continue
-            end
-            
-            local head = player.Character:FindFirstChild("Head")
-            if head then
-                local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    if lib.AimbotVisibleCheck and not lib.AimbotFunctions.isPlayerVisible(player) then
-                        continue
-                    end
-                    
-                    local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-                    local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-                    local distance = (center - targetPos).Magnitude
-                    
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestPlayer = player
+        pcall(function()
+            if player ~= LocalPlayer and player.Character then
+                if lib.AimbotTeamCheck and not lib.IsPlayerKiller(player) then return end
+                
+                local head = player.Character:FindFirstChild("Head")
+                if head then
+                    local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local center = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+                        local distance = (center - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                        
+                        if distance < closestDistance then
+                            closestDistance = distance
+                            closestPlayer = player
+                        end
                     end
                 end
             end
-        end
+        end)
     end
     
     return closestPlayer
 end
 
 lib.AimbotFunctions.aimAt = function(player)
-    if not player or not player.Character then return end
-    
-    local head = player.Character:FindFirstChild("Head")
-    if not head then return end
-    
-    local camera = Workspace.CurrentCamera
-    local cameraPos = camera.CFrame.Position
-    local targetPos = head.Position
-    local targetCFrame = CFrame.lookAt(cameraPos, targetPos)
-    local smoothness = (100 - lib.AimbotSmoothness) / 100
-    
-    camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothness)
-end
-
-lib.AimbotFunctions.updateAimbotUI = function()
-    if lib.AimbotEnabled then
-        lib.AimbotFOVCircle.Visible = true
-        lib.AimbotFOVCircle.Size = UDim2.new(0, lib.AimbotFOV * 2, 0, lib.AimbotFOV * 2)
-    else
-        lib.AimbotFOVCircle.Visible = false
-    end
-end
-
-lib.StartAimbot = function()
-    if lib.AimbotConnection then
-        lib.AimbotConnection:Disconnect()
-    end
-    
-    lib.AimbotConnection = RunService.RenderStepped:Connect(function()
-        if lib.AimbotEnabled then
-            local target = lib.AimbotFunctions.findClosestPlayer()
-            if target then
-                lib.AimbotFunctions.aimAt(target)
-            end
-        end
+    pcall(function()
+        if not player or not player.Character then return end
+        
+        local head = player.Character:FindFirstChild("Head")
+        if not head then return end
+        
+        local camera = workspace.CurrentCamera
+        local targetCFrame = CFrame.lookAt(camera.CFrame.Position, head.Position)
+        local smoothness = (100 - lib.AimbotSmoothness) / 100
+        
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, smoothness)
     end)
 end
 
-lib.StopAimbot = function()
-    if lib.AimbotConnection then
-        lib.AimbotConnection:Disconnect()
-        lib.AimbotConnection = nil
-    end
-end
-
 -- ============================================
--- FLY FUNCTIONS (LENGKAP)
+-- MOVEMENT FUNCTIONS
 -- ============================================
-
-lib.FlyActive = false
-lib.BodyVelocity = nil
-lib.BodyGyro = nil
-
-lib.StartFly = function()
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    
-    if not rootPart or not humanoid then return end
-    
-    lib.FlyActive = true
-    
-    lib.BodyVelocity = Instance.new("BodyVelocity")
-    lib.BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    lib.BodyVelocity.MaxForce = Vector3.new(40000, 40000, 40000)
-    lib.BodyVelocity.Parent = rootPart
-    
-    lib.BodyGyro = Instance.new("BodyGyro")
-    lib.BodyGyro.MaxTorque = Vector3.new(40000, 40000, 40000)
-    lib.BodyGyro.P = 1000
-    lib.BodyGyro.D = 50
-    lib.BodyGyro.Parent = rootPart
-    
-    lib.FlyConnection = RunService.Heartbeat:Connect(function()
-        if not lib.FlyEnabled or not character or not rootPart or not lib.BodyVelocity or not lib.BodyGyro then
-            return
-        end
-        
-        lib.BodyGyro.CFrame = Workspace.CurrentCamera.CFrame
-        
-        local moveDirection = Vector3.new(0, 0, 0)
-        
-        -- Touch controls untuk fly (menggunakan touch joystick sederhana)
-        -- Untuk implementasi lengkap, perlu touch joystick
-        
-        if UserInputService.TouchEnabled then
-            -- Akan diisi dengan touch controls
-        end
-        
-        lib.BodyVelocity.Velocity = moveDirection * lib.FlySpeedValue
-        humanoid.PlatformStand = true
-    end)
-end
-
-lib.StopFly = function()
-    lib.FlyActive = false
-    
-    if lib.FlyConnection then
-        lib.FlyConnection:Disconnect()
-        lib.FlyConnection = nil
-    end
-    
-    local character = LocalPlayer.Character
-    if character then
-        local rootPart = character:FindFirstChild("HumanoidRootPart")
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        
-        if humanoid then
-            humanoid.PlatformStand = false
-        end
-        
-        if rootPart then
-            if lib.BodyVelocity then
-                lib.BodyVelocity:Destroy()
-                lib.BodyVelocity = nil
-            end
-            if lib.BodyGyro then
-                lib.BodyGyro:Destroy()
-                lib.BodyGyro = nil
-            end
-        end
-    end
-end
-
--- ============================================
--- NOCLIP FUNCTIONS (LENGKAP)
--- ============================================
-
 lib.StartNoclip = function()
-    local character = LocalPlayer.Character
-    if not character then return end
+    if lib.Connections.Noclip then lib.Connections.Noclip:Disconnect() end
     
-    if lib.NoclipConnection then
-        lib.NoclipConnection:Disconnect()
-        lib.NoclipConnection = nil
-    end
-    
-    lib.NoclipConnection = RunService.Stepped:Connect(function()
-        if not lib.NoclipEnabled or not character or not character.Parent then
-            if lib.NoclipConnection then
-                lib.NoclipConnection:Disconnect()
-                lib.NoclipConnection = nil
-            end
-            return
-        end
-        
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-        
-        -- R6 body parts
-        local bodyParts = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
-        for _, partName in ipairs(bodyParts) do
-            local part = character:FindFirstChild(partName)
-            if part and part:IsA("BasePart") then
-                part.CanCollide = false
-                part.Velocity = Vector3.new(0, 0, 0)
-                part.RotVelocity = Vector3.new(0, 0, 0)
-            end
-        end
-        
-        -- Accessories
-        for _, accessory in pairs(character:GetChildren()) do
-            if accessory:IsA("Accessory") then
-                local handle = accessory:FindFirstChild("Handle")
-                if handle and handle:IsA("BasePart") then
-                    handle.CanCollide = false
+    lib.Connections.Noclip = RunService.Stepped:Connect(function()
+        pcall(function()
+            if not lib.NoclipEnabled then return end
+            local character = LocalPlayer.Character
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
                 end
             end
-        end
+        end)
     end)
 end
 
 lib.StopNoclip = function()
-    local character = LocalPlayer.Character
-    if character then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
-        end
-    end
-    
-    if lib.NoclipConnection then
-        lib.NoclipConnection:Disconnect()
-        lib.NoclipConnection = nil
+    if lib.Connections.Noclip then
+        lib.Connections.Noclip:Disconnect()
+        lib.Connections.Noclip = nil
     end
 end
 
--- ============================================
--- GOD MODE FUNCTIONS (LENGKAP)
--- ============================================
-
 lib.StartGodMode = function()
-    if lib.GodModeConnection then
-        lib.GodModeConnection:Disconnect()
-    end
+    if lib.Connections.GodMode then lib.Connections.GodMode:Disconnect() end
     
-    lib.GodModeConnection = RunService.Heartbeat:Connect(function()
-        if not lib.GodModeEnabled then
-            if lib.GodModeConnection then
-                lib.GodModeConnection:Disconnect()
-                lib.GodModeConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            -- Disable damage scripts
-            for _, script in pairs(character:GetDescendants()) do
-                if script:IsA("Script") or script:IsA("LocalScript") then
-                    if string.find(string.lower(script.Name), "health") or 
-                       string.find(string.lower(script.Name), "damage") or 
-                       string.find(string.lower(script.Name), "hit") then
-                        pcall(function()
-                            script.Disabled = true
-                        end)
-                    end
-                end
-            end
-            
-            -- Set health values to max
-            for _, value in pairs(character:GetDescendants()) do
-                if value:IsA("NumberValue") or value:IsA("IntValue") then
-                    local name = string.lower(value.Name)
-                    if string.find(name, "health") or string.find(name, "hp") or string.find(name, "damage") then
-                        pcall(function()
-                            if value.Value < 100 then
-                                value.Value = 100
-                            end
-                        end)
-                    end
-                end
-            end
-            
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                if humanoid.Health < 100 then
+    lib.Connections.GodMode = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if not lib.GodModeEnabled then return end
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health < 100 then
                     humanoid.Health = 100
                 end
-                humanoid.MaxHealth = math.huge
             end
-        end
+        end)
     end)
 end
 
 lib.StopGodMode = function()
-    if lib.GodModeConnection then
-        lib.GodModeConnection:Disconnect()
-        lib.GodModeConnection = nil
-    end
-    
-    local character = LocalPlayer.Character
-    if character then
-        -- Re-enable scripts
-        for _, script in pairs(character:GetDescendants()) do
-            if script:IsA("Script") or script:IsA("LocalScript") then
-                pcall(function()
-                    script.Disabled = false
-                end)
-            end
-        end
-        
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.MaxHealth = 100
-        end
+    if lib.Connections.GodMode then
+        lib.Connections.GodMode:Disconnect()
+        lib.Connections.GodMode = nil
     end
 end
 
--- ============================================
--- ANTI STUN FUNCTIONS
--- ============================================
-
 lib.StartAntiStun = function()
-    if lib.AntiStunConnection then
-        lib.AntiStunConnection:Disconnect()
-    end
+    if lib.Connections.AntiStun then lib.Connections.AntiStun:Disconnect() end
     
-    lib.AntiStunConnection = RunService.Heartbeat:Connect(function()
-        if not lib.AntiStunEnabled then
-            if lib.AntiStunConnection then
-                lib.AntiStunConnection:Disconnect()
-                lib.AntiStunConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                if humanoid.PlatformStand then
-                    humanoid.PlatformStand = false
-                end
-                if humanoid.Sit then
-                    humanoid.Sit = false
-                end
-                if humanoid:GetState() == Enum.HumanoidStateType.FallingDown or 
-                   humanoid:GetState() == Enum.HumanoidStateType.Ragdoll then
-                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+    lib.Connections.AntiStun = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if not lib.AntiStunEnabled then return end
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    if humanoid.PlatformStand then humanoid.PlatformStand = false end
+                    if humanoid.Sit then humanoid.Sit = false end
                 end
             end
-        end
+        end)
     end)
 end
 
 lib.StopAntiStun = function()
-    if lib.AntiStunConnection then
-        lib.AntiStunConnection:Disconnect()
-        lib.AntiStunConnection = nil
+    if lib.Connections.AntiStun then
+        lib.Connections.AntiStun:Disconnect()
+        lib.Connections.AntiStun = nil
     end
 end
 
 -- ============================================
--- ANTI GRAB FUNCTIONS
+-- VISUAL FUNCTIONS
 -- ============================================
-
-lib.StartAntiGrab = function()
-    if lib.AntiGrabConnection then
-        lib.AntiGrabConnection:Disconnect()
-    end
-    
-    lib.AntiGrabConnection = RunService.Heartbeat:Connect(function()
-        if not lib.AntiGrabEnabled then
-            if lib.AntiGrabConnection then
-                lib.AntiGrabConnection:Disconnect()
-                lib.AntiGrabConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            
-            if rootPart and humanoid and humanoid.Health > 0 then
-                if humanoid.PlatformStand then
-                    humanoid.PlatformStand = false
-                    rootPart.Velocity = Vector3.new(0, 50, 0)
-                end
-                
-                -- Check for nearby killers
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and lib.IsPlayerKiller(player) then
-                        local killerChar = player.Character
-                        if killerChar then
-                            local killerRoot = killerChar:FindFirstChild("HumanoidRootPart")
-                            if killerRoot then
-                                local distance = (rootPart.Position - killerRoot.Position).Magnitude
-                                if distance < 12 then
-                                    -- Teleport away
-                                    local dirX = rootPart.Position.X - killerRoot.Position.X
-                                    local dirZ = rootPart.Position.Z - killerRoot.Position.Z
-                                    local dist = math.sqrt(dirX * dirX + dirZ * dirZ)
-                                    if dist > 0 then
-                                        local normX, normZ = dirX / dist, dirZ / dist
-                                        local newX = killerRoot.Position.X + (normX * 25)
-                                        local newZ = killerRoot.Position.Z + (normZ * 25)
-                                        rootPart.CFrame = CFrame.new(newX, rootPart.Position.Y + 3, newZ)
-                                    end
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-lib.StopAntiGrab = function()
-    if lib.AntiGrabConnection then
-        lib.AntiGrabConnection:Disconnect()
-        lib.AntiGrabConnection = nil
-    end
-end
-
--- ============================================
--- 100% ESCAPE CHANCE FUNCTIONS
--- ============================================
-
-lib.StartEscapeChance = function()
-    if lib.EscapeChanceConnection then
-        lib.EscapeChanceConnection:Disconnect()
-    end
-    
-    lib.EscapeChanceConnection = RunService.Heartbeat:Connect(function()
-        if not lib.MaxEscapeChanceEnabled then
-            if lib.EscapeChanceConnection then
-                lib.EscapeChanceConnection:Disconnect()
-                lib.EscapeChanceConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            
-            if humanoid and rootPart then
-                if humanoid.PlatformStand or humanoid.Sit then
-                    humanoid.PlatformStand = false
-                    humanoid.Sit = false
-                    rootPart.Velocity = (rootPart.CFrame.LookVector * 50) + Vector3.new(0, 25, 0)
-                end
-                
-                -- Auto-escape from killer
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and lib.IsPlayerKiller(player) then
-                        local killerChar = player.Character
-                        if killerChar then
-                            local killerRoot = killerChar:FindFirstChild("HumanoidRootPart")
-                            if killerRoot and (rootPart.Position - killerRoot.Position).Magnitude < 8 then
-                                local direction = (rootPart.Position - killerRoot.Position).Unit
-                                rootPart.Velocity = (direction * 40) + Vector3.new(0, 15, 0)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-lib.StopEscapeChance = function()
-    if lib.EscapeChanceConnection then
-        lib.EscapeChanceConnection:Disconnect()
-        lib.EscapeChanceConnection = nil
-    end
-end
-
--- ============================================
--- GRAB KILLER FUNCTIONS
--- ============================================
-
-lib.StartGrabKiller = function()
-    if lib.GrabKillerConnection then
-        lib.GrabKillerConnection:Disconnect()
-    end
-    
-    lib.GrabKillerConnection = RunService.Heartbeat:Connect(function()
-        if not lib.GrabKillerEnabled then
-            if lib.GrabKillerConnection then
-                lib.GrabKillerConnection:Disconnect()
-                lib.GrabKillerConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            
-            if rootPart and humanoid then
-                local closestKiller = nil
-                local closestDist = 15
-                
-                for _, player in pairs(Players:GetPlayers()) do
-                    if player ~= LocalPlayer and lib.IsPlayerKiller(player) and not lib.IsPlayerSpectator(player) then
-                        local killerChar = player.Character
-                        if killerChar then
-                            local killerRoot = killerChar:FindFirstChild("HumanoidRootPart")
-                            local killerHumanoid = killerChar:FindFirstChildOfClass("Humanoid")
-                            
-                            if killerRoot and killerHumanoid and killerHumanoid.Health > 0 then
-                                local dist = (rootPart.Position - killerRoot.Position).Magnitude
-                                if dist < closestDist then
-                                    closestDist = dist
-                                    closestKiller = player
-                                end
-                            end
-                        end
-                    end
-                end
-                
-                if closestKiller then
-                    local killerChar = closestKiller.Character
-                    if killerChar then
-                        local killerRoot = killerChar:FindFirstChild("HumanoidRootPart")
-                        local killerHumanoid = killerChar:FindFirstChildOfClass("Humanoid")
-                        
-                        if killerRoot and killerHumanoid then
-                            killerHumanoid.PlatformStand = true
-                            local grabOffset = (rootPart.CFrame.LookVector * 4) + Vector3.new(0, 1, 0)
-                            killerRoot.CFrame = CFrame.new(rootPart.Position + grabOffset)
-                            killerRoot.Velocity = Vector3.new(0, 0, 0)
-                            
-                            -- Disable killer's attack
-                            if killerHumanoid:FindFirstChild("Attack") then
-                                killerHumanoid.Attack:Destroy()
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-lib.StopGrabKiller = function()
-    if lib.GrabKillerConnection then
-        lib.GrabKillerConnection:Disconnect()
-        lib.GrabKillerConnection = nil
-    end
-end
-
--- ============================================
--- RAPID FIRE FUNCTIONS
--- ============================================
-
-lib.StartRapidFire = function()
-    if lib.RapidFireConnection then
-        lib.RapidFireConnection:Disconnect()
-    end
-    
-    lib.RapidFireConnection = RunService.Heartbeat:Connect(function()
-        if not lib.RapidFireEnabled then
-            if lib.RapidFireConnection then
-                lib.RapidFireConnection:Disconnect()
-                lib.RapidFireConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local backpack = LocalPlayer:FindFirstChild("Backpack")
-            local weapon = nil
-            
-            -- Find weapon in character
-            for _, tool in pairs(character:GetChildren()) do
-                if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "twist") or 
-                   string.find(string.lower(tool.Name), "fate") or 
-                   string.find(string.lower(tool.Name), "pistol") or 
-                   string.find(string.lower(tool.Name), "gun")) then
-                    weapon = tool
-                    break
-                end
-            end
-            
-            -- Find weapon in backpack
-            if not weapon and backpack then
-                for _, tool in pairs(backpack:GetChildren()) do
-                    if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "twist") or 
-                       string.find(string.lower(tool.Name), "fate") or 
-                       string.find(string.lower(tool.Name), "pistol") or 
-                       string.find(string.lower(tool.Name), "gun")) then
-                        weapon = tool
-                        break
-                    end
-                end
-            end
-            
-            if weapon then
-                -- Set cooldowns to 0
-                for _, child in pairs(weapon:GetDescendants()) do
-                    if child:IsA("NumberValue") and (child.Name == "Cooldown" or child.Name == "Delay" or child.Name == "FireRate") then
-                        child.Value = 0
-                    end
-                end
-                
-                -- Auto-fire when touching screen (untuk mobile)
-                -- Implementasi touch firing akan ditambahkan
-            end
-        end
-    end)
-end
-
-lib.StopRapidFire = function()
-    if lib.RapidFireConnection then
-        lib.RapidFireConnection:Disconnect()
-        lib.RapidFireConnection = nil
-    end
-end
-
--- ============================================
--- DISABLE TWIST ANIMATIONS FUNCTIONS
--- ============================================
-
-lib.StartDisableTwistAnimations = function()
-    if lib.TwistAnimationsConnection then
-        lib.TwistAnimationsConnection:Disconnect()
-    end
-    
-    lib.TwistAnimationsConnection = RunService.Heartbeat:Connect(function()
-        if not lib.DisableTwistAnimationsEnabled then
-            if lib.TwistAnimationsConnection then
-                lib.TwistAnimationsConnection:Disconnect()
-                lib.TwistAnimationsConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local backpack = LocalPlayer:FindFirstChild("Backpack")
-            local weapon = nil
-            
-            -- Find Twist of Fate weapon
-            for _, tool in pairs(character:GetChildren()) do
-                if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "twist") or string.find(string.lower(tool.Name), "fate")) then
-                    weapon = tool
-                    break
-                end
-            end
-            
-            if not weapon and backpack then
-                for _, tool in pairs(backpack:GetChildren()) do
-                    if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "twist") or string.find(string.lower(tool.Name), "fate")) then
-                        weapon = tool
-                        break
-                    end
-                end
-            end
-            
-            if weapon then
-                -- Stop all animations
-                for _, anim in pairs(weapon:GetDescendants()) do
-                    if anim:IsA("AnimationTrack") then
-                        anim:Stop()
-                    end
-                end
-                
-                -- Stop all sounds
-                for _, sound in pairs(weapon:GetDescendants()) do
-                    if sound:IsA("Sound") then
-                        sound:Stop()
-                    end
-                end
-                
-                -- Disable particle emitters
-                for _, emitter in pairs(weapon:GetDescendants()) do
-                    if emitter:IsA("ParticleEmitter") then
-                        emitter.Enabled = false
-                    end
-                end
-            end
-        end
-    end)
-end
-
-lib.StopDisableTwistAnimations = function()
-    if lib.TwistAnimationsConnection then
-        lib.TwistAnimationsConnection:Disconnect()
-        lib.TwistAnimationsConnection = nil
-    end
-end
-
--- ============================================
--- ROTATE PERSON FUNCTIONS
--- ============================================
-
-lib.StartRotatePerson = function()
-    if lib.RotateConnection then
-        lib.RotateConnection:Disconnect()
-    end
-    
-    lib.RotateConnection = RunService.Heartbeat:Connect(function()
-        if not lib.RotatePersonEnabled then
-            if lib.RotateConnection then
-                lib.RotateConnection:Disconnect()
-                lib.RotateConnection = nil
-            end
-            return
-        end
-        
-        local character = LocalPlayer.Character
-        if character then
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            if rootPart then
-                local currentCF = rootPart.CFrame
-                local rotation = CFrame.Angles(0, math.rad(lib.RotateSpeed) * 0.1, 0)
-                rootPart.CFrame = currentCF * rotation
-            end
-        end
-    end)
-end
-
-lib.StopRotatePerson = function()
-    if lib.RotateConnection then
-        lib.RotateConnection:Disconnect()
-        lib.RotateConnection = nil
-    end
-end
-
--- ============================================
--- THIRD PERSON VIEW FUNCTIONS
--- ============================================
-
-lib.OriginalCameraType = nil
-
-lib.StartThirdPerson = function()
-    if not lib.ThirdPersonEnabled then return end
-    
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    if not lib.IsPlayerKiller(LocalPlayer) then
-        print("Third Person: Available only for Killer")
-        lib.ThirdPersonEnabled = false
-        return
-    end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-    
-    if not lib.OriginalCameraType then
-        lib.OriginalCameraType = Workspace.CurrentCamera.CameraType
-    end
-    
-    Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
-    Workspace.CurrentCamera.CameraSubject = rootPart
-end
-
-lib.StopThirdPerson = function()
-    if lib.OriginalCameraType then
-        Workspace.CurrentCamera.CameraType = lib.OriginalCameraType
-        lib.OriginalCameraType = nil
-    end
-    
-    local character = LocalPlayer.Character
-    if character then
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            Workspace.CurrentCamera.CameraSubject = humanoid
-        end
-    end
-end
-
-lib.UpdateThirdPersonView = function()
-    if not lib.ThirdPersonEnabled then return end
-    
-    local character = LocalPlayer.Character
-    if not character then return end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then return end
-    
-    local offset = Vector3.new(0, 2, 8)
-    local lookVector = rootPart.CFrame.LookVector
-    local cameraPos = (rootPart.Position - (lookVector * offset.Z)) + Vector3.new(0, offset.Y, 0)
-    Workspace.CurrentCamera.CFrame = CFrame.lookAt(cameraPos, rootPart.Position + Vector3.new(0, 2, 0))
-end
-
-lib.ToggleThirdPerson = function(state)
-    lib.ThirdPersonEnabled = state
-    
-    if state and not lib.IsPlayerKiller(LocalPlayer) then
-        print("Third Person: You are not the Killer!")
-        lib.ThirdPersonEnabled = false
-        return
-    end
-    
-    if state then
-        lib.StartThirdPerson()
-        
-        if lib.ThirdPersonConnection then
-            lib.ThirdPersonConnection:Disconnect()
-        end
-        
-        lib.ThirdPersonConnection = RunService.RenderStepped:Connect(function()
-            if not lib.ThirdPersonEnabled then
-                lib.ThirdPersonConnection:Disconnect()
-                lib.StopThirdPerson()
-                return
-            end
-            
-            if not lib.IsPlayerKiller(LocalPlayer) then
-                print("Third Person: You are no longer the Killer!")
-                lib.ToggleThirdPerson(false)
-                return
-            end
-            
-            lib.UpdateThirdPersonView()
-        end)
-        
-        LocalPlayer.CharacterAdded:Connect(function()
-            wait(1)
-            if lib.ThirdPersonEnabled and lib.IsPlayerKiller(LocalPlayer) then
-                lib.StartThirdPerson()
-            end
-        end)
-    else
-        if lib.ThirdPersonConnection then
-            lib.ThirdPersonConnection:Disconnect()
-            lib.ThirdPersonConnection = nil
-        end
-        lib.StopThirdPerson()
-    end
-end
-
--- ============================================
--- NO FOG FUNCTIONS
--- ============================================
-
 lib.StartNoFog = function()
-    if lib.NoFogConnection then
-        lib.NoFogConnection:Disconnect()
-    end
+    if lib.Connections.NoFog then lib.Connections.NoFog:Disconnect() end
     
-    lib.NoFogConnection = RunService.Heartbeat:Connect(function()
-        if not lib.NoFogEnabled then
-            if lib.NoFogConnection then
-                lib.NoFogConnection:Disconnect()
-                lib.NoFogConnection = nil
+    lib.Connections.NoFog = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if lib.NoFogEnabled then
+                Lighting.FogEnd = 1000000
+                Lighting.FogStart = 100000
             end
-            return
-        end
-        
-        Lighting.FogEnd = 1000000
-        Lighting.FogStart = 100000
-        Lighting.FogColor = Color3.new(1, 1, 1)
+        end)
     end)
 end
 
 lib.StopNoFog = function()
-    if lib.NoFogConnection then
-        lib.NoFogConnection:Disconnect()
-        lib.NoFogConnection = nil
+    if lib.Connections.NoFog then
+        lib.Connections.NoFog:Disconnect()
+        lib.Connections.NoFog = nil
     end
-    
     Lighting.FogEnd = 1000
     Lighting.FogStart = 0
 end
 
 -- ============================================
--- CUSTOM TIME FUNCTIONS
+-- RGB & SUPER ESP
 -- ============================================
-
-lib.StartCustomTime = function()
-    if lib.TimeConnection then
-        lib.TimeConnection:Disconnect()
-    end
-    
-    lib.TimeConnection = RunService.Heartbeat:Connect(function()
-        if not lib.TimeEnabled then
-            if lib.TimeConnection then
-                lib.TimeConnection:Disconnect()
-                lib.TimeConnection = nil
-            end
-            return
-        end
-        Lighting.ClockTime = lib.TimeValue
-    end)
-end
-
-lib.StopCustomTime = function()
-    if lib.TimeConnection then
-        lib.TimeConnection:Disconnect()
-        lib.TimeConnection = nil
-    end
-end
-
--- ============================================
--- MAP COLOR FUNCTIONS
--- ============================================
-
-lib.StartMapColor = function()
-    if lib.MapColorConnection then
-        lib.MapColorConnection:Disconnect()
-    end
-    
-    lib.MapColorConnection = RunService.Heartbeat:Connect(function()
-        if not lib.MapColorEnabled then
-            if lib.MapColorConnection then
-                lib.MapColorConnection:Disconnect()
-                lib.MapColorConnection = nil
-            end
-            return
-        end
-        
-        Lighting.Ambient = lib.MapColor
-        Lighting.OutdoorAmbient = lib.MapColor
-        Lighting.ColorShift_Bottom = lib.MapColor
-        Lighting.ColorShift_Top = lib.MapColor
-        
-        if not Lighting:FindFirstChild("ColorCorrection") then
-            local colorCorrection = Instance.new("ColorCorrectionEffect")
-            colorCorrection.Name = "ColorCorrection"
-            colorCorrection.Saturation = lib.MapColorSaturation
-            colorCorrection.Parent = Lighting
-        else
-            Lighting.ColorCorrection.Saturation = lib.MapColorSaturation
-        end
-    end)
-end
-
-lib.StopMapColor = function()
-    if lib.MapColorConnection then
-        lib.MapColorConnection:Disconnect()
-        lib.MapColorConnection = nil
-    end
-    
-    Lighting.Ambient = Color3.new(0.5, 0.5, 0.5)
-    Lighting.OutdoorAmbient = Color3.new(0.5, 0.5, 0.5)
-    Lighting.ColorShift_Bottom = Color3.new(0, 0, 0)
-    Lighting.ColorShift_Top = Color3.new(0, 0, 0)
-    
-    if Lighting:FindFirstChild("ColorCorrection") then
-        Lighting.ColorCorrection:Destroy()
-    end
-end
-
--- ============================================
--- RGB ESP FUNCTIONS
--- ============================================
-
 lib.StartRGBESP = function()
-    if lib.RGBESPConnection then
-        lib.RGBESPConnection:Disconnect()
-    end
+    if lib.Connections.RGBESP then lib.Connections.RGBESP:Disconnect() end
     
-    lib.RGBESPConnection = RunService.Heartbeat:Connect(function()
-        if not lib.RGBESPEnabled or not lib.ESPEnabled then
-            if lib.RGBESPConnection then
-                lib.RGBESPConnection:Disconnect()
-                lib.RGBESPConnection = nil
+    lib.Connections.RGBESP = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if lib.RGBESPEnabled and lib.ESPEnabled then
+                local color = lib.GetRainbowColor(lib.RGBESPSpeed)
+                lib.KillerColor = color
+                lib.SurvivorColor = color
+                lib.UpdateESP()
             end
-            return
-        end
-        
-        local rainbowColor = lib.GetRainbowColor(lib.RGBESPSpeed)
-        lib.KillerColor = rainbowColor
-        lib.SurvivorColor = rainbowColor
-        lib.UpdateESP()
+        end)
     end)
 end
 
 lib.StopRGBESP = function()
-    if lib.RGBESPConnection then
-        lib.RGBESPConnection:Disconnect()
-        lib.RGBESPConnection = nil
+    if lib.Connections.RGBESP then
+        lib.Connections.RGBESP:Disconnect()
+        lib.Connections.RGBESP = nil
+    end
+    lib.KillerColor = Color3.fromRGB(255, 0, 0)
+    lib.SurvivorColor = Color3.fromRGB(0, 255, 0)
+end
+
+lib.StartSuperESP = function()
+    if lib.Connections.SuperESP then lib.Connections.SuperESP:Disconnect() end
+    
+    lib.Connections.SuperESP = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if lib.SuperESPEnabled and lib.ESPEnabled then
+                local time = tick()
+                for player, folder in pairs(lib.ESPFolders) do
+                    if player and folder and player.Character then
+                        local color = lib.GetSuperESPColor(
+                            lib.IsPlayerKiller(player) and lib.KillerColor or lib.SurvivorColor, 
+                            time, 
+                            lib.SuperESPSpeed
+                        )
+                        local highlight = folder:FindFirstChild("ESPHighlight")
+                        if highlight then
+                            highlight.FillColor = color
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+end
+
+lib.StopSuperESP = function()
+    if lib.Connections.SuperESP then
+        lib.Connections.SuperESP:Disconnect()
+        lib.Connections.SuperESP = nil
     end
 end
 
 -- ============================================
--- SUPER ESP FUNCTIONS
+-- TELEPORT
 -- ============================================
-
-lib.StartSuperESP = function()
-    if lib.SuperESPConnection then
-        lib.SuperESPConnection:Disconnect()
-    end
-    
-    lib.SuperESPConnection = RunService.Heartbeat:Connect(function()
-        if not lib.SuperESPEnabled or not lib.ESPEnabled then
-            if lib.SuperESPConnection then
-                lib.SuperESPConnection:Disconnect()
-                lib.SuperESPConnection = nil
-            end
-            return
-        end
+lib.TeleportToPlayer = function(targetPlayer)
+    pcall(function()
+        if not targetPlayer or targetPlayer == LocalPlayer then return end
         
-        local time = tick()
+        local character = LocalPlayer.Character
+        local targetChar = targetPlayer.Character
         
-        -- Update player ESP
-        for player, folder in pairs(lib.ESPFolders) do
-            if player and folder and folder.Parent and player.Character then
-                local isKiller = lib.IsPlayerKiller(player)
-                local baseColor = isKiller and lib.KillerColor or lib.SurvivorColor
-                local newColor = lib.GetSuperESPColor(baseColor, time, lib.SuperESPSpeed)
-                
-                local highlight = folder:FindFirstChild("ESPHighlight")
-                local billboard = folder:FindFirstChild("ESPBillboard")
-                
-                if highlight then
-                    highlight.FillColor = newColor
-                    highlight.OutlineColor = newColor
-                end
-                
-                if billboard then
-                    local nameLabel = billboard:FindFirstChild("ESPName")
-                    if nameLabel then
-                        nameLabel.TextColor3 = newColor
-                    end
-                end
-            end
-        end
-        
-        -- Update generator ESP
-        for obj, folder in pairs(lib.GeneratorESPItems) do
-            if obj and folder then
-                local newColor = lib.GetSuperESPColor(lib.GeneratorColor, time, lib.SuperESPSpeed)
-                local highlight = folder:FindFirstChild("Highlight")
-                if highlight then
-                    highlight.FillColor = newColor
-                    highlight.OutlineColor = newColor
-                end
-            end
-        end
-        
-        -- Update pallet ESP
-        for obj, folder in pairs(lib.PalletESPItems) do
-            if obj and folder then
-                local newColor = lib.GetSuperESPColor(lib.PalletColor, time, lib.SuperESPSpeed)
-                local highlight = folder:FindFirstChild("Highlight")
-                if highlight then
-                    highlight.FillColor = newColor
-                    highlight.OutlineColor = newColor
-                end
+        if character and targetChar then
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+            
+            if rootPart and targetRoot then
+                rootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(3, 0, 3))
             end
         end
     end)
 end
 
-lib.StopSuperESP = function()
-    if lib.SuperESPConnection then
-        lib.SuperESPConnection:Disconnect()
-        lib.SuperESPConnection = nil
-    end
-    
-    lib.UpdateESP()
-    lib.UpdateGeneratorESP()
-    lib.UpdatePalletESP()
-end
-
--- ============================================
--- TELEPORT FUNCTIONS
--- ============================================
-
-lib.TeleportFrame = nil
-lib.TeleportPlayersFrame = nil
-
-lib.TeleportToPlayer = function(targetPlayer)
-    if not targetPlayer or targetPlayer == LocalPlayer then
-        print("Cannot teleport to yourself")
-        return
-    end
-    
-    local character = LocalPlayer.Character
-    local targetChar = targetPlayer.Character
-    
-    if not character or not targetChar then
-        print("Character not found")
-        return
-    end
-    
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not rootPart or not targetRoot then
-        print("HumanoidRootPart not found")
-        return
-    end
-    
-    rootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(3, 0, 3))
-    print("Teleported to: " .. targetPlayer.Name)
-end
-
-lib.UpdateTeleportPlayersList = function()
-    if not lib.TeleportPlayersFrame then return end
-    
-    for _, child in ipairs(lib.TeleportPlayersFrame:GetChildren()) do
-        child:Destroy()
-    end
-    
-    local playerCount = 0
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and not lib.IsPlayerSpectator(player) then
-            playerCount = playerCount + 1
-            
-            local isKiller = lib.IsPlayerKiller(player)
-            local btn = Instance.new("TextButton")
-            btn.Name = player.Name
-            btn.Size = UDim2.new(1, -10, 0, 50)
-            btn.Position = UDim2.new(0, 5, 0, (playerCount - 1) * 55)
-            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-            btn.BorderSizePixel = 0
-            btn.Text = player.Name .. " (" .. (isKiller and "KILLER" or "SURVIVOR") .. ")"
-            btn.TextColor3 = isKiller and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
-            btn.TextSize = 14
-            btn.Font = Enum.Font.GothamBold
-            btn.Parent = lib.TeleportPlayersFrame
-            
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 8)
-            btnCorner.Parent = btn
-            
-            btn.MouseButton1Click:Connect(function()
-                lib.TeleportToPlayer(player)
-                if lib.TeleportFrame then
-                    lib.TeleportFrame.Visible = false
-                end
-            end)
-        end
-    end
-    
-    lib.TeleportPlayersFrame.CanvasSize = UDim2.new(0, 0, 0, math.max(50, playerCount * 55))
-    
-    if playerCount == 0 then
-        local noPlayers = Instance.new("TextLabel")
-        noPlayers.Size = UDim2.new(1, -10, 0, 50)
-        noPlayers.Position = UDim2.new(0, 5, 0, 0)
-        noPlayers.BackgroundTransparency = 1
-        noPlayers.Text = "No other players found"
-        noPlayers.TextColor3 = Color3.fromRGB(150, 150, 150)
-        noPlayers.TextSize = 16
-        noPlayers.Font = Enum.Font.Gotham
-        noPlayers.Parent = lib.TeleportPlayersFrame
-    end
-end
-
 lib.CreateTeleportMenu = function()
-    lib.TeleportFrame = Instance.new("Frame")
-    lib.TeleportFrame.Name = "TeleportFrame"
-    lib.TeleportFrame.Size = UDim2.new(0, 350, 0, 450)
-    lib.TeleportFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-    lib.TeleportFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-    lib.TeleportFrame.BorderSizePixel = 0
-    lib.TeleportFrame.Visible = false
-    lib.TeleportFrame.ZIndex = 100
-    lib.TeleportFrame.Parent = lib.ScreenGui
+    local TeleportFrame = Instance.new("Frame")
+    TeleportFrame.Name = "TeleportFrame"
+    TeleportFrame.Size = UDim2.new(0, 320, 0, 400)
+    TeleportFrame.Position = UDim2.new(0.5, -160, 0.5, -200)
+    TeleportFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    TeleportFrame.BorderSizePixel = 0
+    TeleportFrame.Visible = false
+    TeleportFrame.ZIndex = 100
+    TeleportFrame.Parent = ScreenGui
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
-    corner.Parent = lib.TeleportFrame
+    corner.Parent = TeleportFrame
     
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(80, 80, 90)
-    stroke.Thickness = 2
-    stroke.Parent = lib.TeleportFrame
-    
-    local titleFrame = Instance.new("Frame")
-    titleFrame.Name = "TitleFrame"
-    titleFrame.Size = UDim2.new(1, 0, 0, 50)
-    titleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    titleFrame.BorderSizePixel = 0
-    titleFrame.Parent = lib.TeleportFrame
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 50)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    titleLabel.Text = "📍 TELEPORT"
+    titleLabel.TextColor3 = Color3.white
+    titleLabel.TextSize = 18
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = TeleportFrame
     
     local titleCorner = Instance.new("UICorner")
     titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = titleFrame
-    
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -60, 1, 0)
-    titleLabel.Position = UDim2.new(0, 15, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "TELEPORT TO PLAYER"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 16
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Parent = titleFrame
+    titleCorner.Parent = titleLabel
     
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Name = "CloseButton"
     closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -45, 0.5, -20)
+    closeBtn.Position = UDim2.new(1, -45, 0, 5)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    closeBtn.BorderSizePixel = 0
     closeBtn.Text = "✕"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextColor3 = Color3.white
     closeBtn.TextSize = 24
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.Parent = titleFrame
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = titleLabel
     
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 8)
-    closeCorner.Parent = closeBtn
+    local closeBtnCorner = Instance.new("UICorner")
+    closeBtnCorner.CornerRadius = UDim.new(0, 8)
+    closeBtnCorner.Parent = closeBtn
     
-    lib.TeleportPlayersFrame = Instance.new("ScrollingFrame")
-    lib.TeleportPlayersFrame.Name = "TeleportPlayersFrame"
-    lib.TeleportPlayersFrame.Size = UDim2.new(1, -20, 1, -120)
-    lib.TeleportPlayersFrame.Position = UDim2.new(0, 10, 0, 60)
-    lib.TeleportPlayersFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    lib.TeleportPlayersFrame.BorderSizePixel = 0
-    lib.TeleportPlayersFrame.ScrollBarThickness = 6
-    lib.TeleportPlayersFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
-    lib.TeleportPlayersFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    lib.TeleportPlayersFrame.Parent = lib.TeleportFrame
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -20, 1, -110)
+    scrollFrame.Position = UDim2.new(0, 10, 0, 60)
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.Parent = TeleportFrame
     
-    local playersCorner = Instance.new("UICorner")
-    playersCorner.CornerRadius = UDim.new(0, 8)
-    playersCorner.Parent = lib.TeleportPlayersFrame
+    local scrollCorner = Instance.new("UICorner")
+    scrollCorner.CornerRadius = UDim.new(0, 8)
+    scrollCorner.Parent = scrollFrame
     
     local refreshBtn = Instance.new("TextButton")
-    refreshBtn.Name = "RefreshButton"
     refreshBtn.Size = UDim2.new(0, 120, 0, 40)
-    refreshBtn.Position = UDim2.new(0, 20, 1, -55)
+    refreshBtn.Position = UDim2.new(0, 15, 1, -50)
     refreshBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
-    refreshBtn.BorderSizePixel = 0
-    refreshBtn.Text = "REFRESH"
-    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    refreshBtn.TextSize = 14
+    refreshBtn.Text = "🔄 REFRESH"
+    refreshBtn.TextColor3 = Color3.white
+    refreshBtn.TextSize = 16
     refreshBtn.Font = Enum.Font.GothamBold
-    refreshBtn.Parent = lib.TeleportFrame
+    refreshBtn.BorderSizePixel = 0
+    refreshBtn.Parent = TeleportFrame
     
     local refreshCorner = Instance.new("UICorner")
     refreshCorner.CornerRadius = UDim.new(0, 8)
     refreshCorner.Parent = refreshBtn
     
-    -- Dragging
-    local dragActive = false
-    local dragStart = nil
-    local startPos = nil
+    lib.TeleportFrame = TeleportFrame
+    lib.TeleportScrollFrame = scrollFrame
     
-    titleFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragActive = true
-            dragStart = input.Position
-            startPos = lib.TeleportFrame.Position
+    local function updateList()
+        for _, child in ipairs(scrollFrame:GetChildren()) do
+            child:Destroy()
         end
-    end)
-    
-    titleFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            lib.dragInput = input
+        
+        local yPos = 0
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, -10, 0, 55)
+                btn.Position = UDim2.new(0, 5, 0, yPos)
+                btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+                btn.Text = player.Name
+                btn.TextColor3 = Color3.white
+                btn.TextSize = 16
+                btn.Font = Enum.Font.GothamBold
+                btn.BorderSizePixel = 0
+                btn.Parent = scrollFrame
+                
+                local btnCorner = Instance.new("UICorner")
+                btnCorner.CornerRadius = UDim.new(0, 8)
+                btnCorner.Parent = btn
+                
+                btn.MouseButton1Click:Connect(function()
+                    lib.TeleportToPlayer(player)
+                    TeleportFrame.Visible = false
+                end)
+                
+                yPos = yPos + 60
+            end
         end
-    end)
+        
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, yPos)
+    end
     
-    UserInputService.InputChanged:Connect(function(input)
-        if input == lib.dragInput and dragActive then
-            local delta = input.Position - dragStart
-            lib.TeleportFrame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragActive = false
-        end
-    end)
-    
-    refreshBtn.MouseButton1Click:Connect(function()
-        lib.UpdateTeleportPlayersList()
-    end)
-    
+    refreshBtn.MouseButton1Click:Connect(updateList)
     closeBtn.MouseButton1Click:Connect(function()
-        lib.TeleportFrame.Visible = false
+        TeleportFrame.Visible = false
     end)
+    
+    updateList()
 end
 
 lib.OpenTeleportMenu = function()
     if not lib.TeleportFrame then
         lib.CreateTeleportMenu()
     end
-    
     lib.TeleportFrame.Visible = true
-    lib.UpdateTeleportPlayersList()
 end
 
 -- ============================================
--- GAME STATE CHECKERS
+-- CREATE MAIN UI
 -- ============================================
+print("🎨 Creating Main UI...")
 
-lib.MapLoaded = false
-lib.GameStarted = false
+lib.MainFrame = Instance.new("Frame")
+lib.MainFrame.Size = UDim2.new(0, 500, 0, 600)
+lib.MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
+lib.MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+lib.MainFrame.BorderSizePixel = 0
+lib.MainFrame.Active = true
+lib.MainFrame.Visible = false
+lib.MainFrame.Parent = ScreenGui
 
-lib.CheckMapLoaded = function()
-    local mapFolders = {"Generators", "Generator", "Pallets", "Pallet", "Exit", "Doors", "GameArea", "Map"}
-    for _, folderName in ipairs(mapFolders) do
-        if Workspace:FindFirstChild(folderName) then
-            return true
-        end
-    end
-    
-    -- Check if there are players with roles
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local role = lib.GetPlayerRole(player)
-            if role ~= "Spectator" and role ~= "Unknown" then
-                return true
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 15)
+mainCorner.Parent = lib.MainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(100, 100, 255)
+mainStroke.Thickness = 3
+mainStroke.Parent = lib.MainFrame
+
+-- Make draggable for mobile
+local dragToggle = false
+local dragStart = nil
+local startPos = nil
+
+lib.MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragToggle = true
+        dragStart = input.Position
+        startPos = lib.MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragToggle = false
             end
-        end
+        end)
     end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and dragToggle then
+        local delta = input.Position - dragStart
+        lib.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 55)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = lib.MainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 15)
+titleCorner.Parent = titleBar
+
+local logoImg = Instance.new("ImageLabel")
+logoImg.Size = UDim2.new(0, 38, 0, 38)
+logoImg.Position = UDim2.new(0, 8, 0.5, -19)
+logoImg.BackgroundTransparency = 1
+logoImg.Image = "https://files.catbox.moe/8h7dgs.jpg"
+logoImg.Parent = titleBar
+
+local logoImgCorner = Instance.new("UICorner")
+logoImgCorner.CornerRadius = UDim.new(0, 8)
+logoImgCorner.Parent = logoImg
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -110, 1, 0)
+title.Position = UDim2.new(0, 55, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "⚡ IKAXZU HUB"
+title.TextColor3 = Color3.fromRGB(100, 100, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = titleBar
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 43, 0, 43)
+closeBtn.Position = UDim2.new(1, -49, 0.5, -21.5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.white
+closeBtn.TextSize = 22
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = titleBar
+
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 10)
+closeBtnCorner.Parent = closeBtn
+
+-- Tab System
+local tabContainer = Instance.new("Frame")
+tabContainer.Size = UDim2.new(1, 0, 0, 42)
+tabContainer.Position = UDim2.new(0, 0, 0, 55)
+tabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+tabContainer.BorderSizePixel = 0
+tabContainer.Parent = lib.MainFrame
+
+local tabList = Instance.new("UIListLayout")
+tabList.FillDirection = Enum.FillDirection.Horizontal
+tabList.Padding = UDim.new(0, 5)
+tabList.Parent = tabContainer
+
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -18, 1, -115)
+contentFrame.Position = UDim2.new(0, 9, 0, 105)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = lib.MainFrame
+
+local tabNames = {"ESP", "COLORS", "MOVE", "VISUAL", "AIM"}
+local tabButtons = {}
+local tabFrames = {}
+
+for i, tabName in ipairs(tabNames) do
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Size = UDim2.new(0.2, -4, 1, 0)
+    tabBtn.BackgroundColor3 = i == 1 and Color3.fromRGB(100, 100, 255) or Color3.fromRGB(30, 30, 35)
+    tabBtn.Text = tabName
+    tabBtn.TextColor3 = Color3.white
+    tabBtn.TextSize = 15
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.BorderSizePixel = 0
+    tabBtn.Parent = tabContainer
     
-    return false
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 8)
+    tabCorner.Parent = tabBtn
+    
+    local tabFrame = Instance.new("ScrollingFrame")
+    tabFrame.Size = UDim2.new(1, 0, 1, 0)
+    tabFrame.BackgroundTransparency = 1
+    tabFrame.BorderSizePixel = 0
+    tabFrame.ScrollBarThickness = 8
+    tabFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 255)
+    tabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    tabFrame.Visible = (i == 1)
+    tabFrame.Parent = contentFrame
+    
+    local tabListLayout = Instance.new("UIListLayout")
+    tabListLayout.Padding = UDim.new(0, 9)
+    tabListLayout.Parent = tabFrame
+    
+    tabListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        tabFrame.CanvasSize = UDim2.new(0, 0, 0, tabListLayout.AbsoluteContentSize.Y + 10)
+    end)
+    
+    tabButtons[tabName] = tabBtn
+    tabFrames[tabName] = tabFrame
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        for name, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        end
+        for name, frame in pairs(tabFrames) do
+            frame.Visible = false
+        end
+        
+        tabBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+        tabFrame.Visible = true
+    end)
 end
 
-lib.CheckGameStarted = function()
-    local hasKiller = false
-    local hasSurvivor = false
-    local totalPlayers = 0
+print("✅ Main UI Created!")
+
+-- ============================================
+-- UI CREATION FUNCTIONS (MOBILE OPTIMIZED)
+-- ============================================
+lib.CreateToggle = function(text, default, callback, parent)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(1, 0, 0, 48)
+    toggleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    toggleFrame.BorderSizePixel = 0
+    toggleFrame.Parent = parent
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local role = lib.GetPlayerRole(player)
-            if role == "Killer" then
-                hasKiller = true
-                totalPlayers = totalPlayers + 1
-            elseif role == "Survivor" then
-                hasSurvivor = true
-                totalPlayers = totalPlayers + 1
-            end
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 10)
+    toggleCorner.Parent = toggleFrame
+    
+    local toggleLabel = Instance.new("TextLabel")
+    toggleLabel.Size = UDim2.new(1, -68, 1, 0)
+    toggleLabel.Position = UDim2.new(0, 13, 0, 0)
+    toggleLabel.BackgroundTransparency = 1
+    toggleLabel.Text = text
+    toggleLabel.TextColor3 = Color3.white
+    toggleLabel.TextSize = 15
+    toggleLabel.Font = Enum.Font.Gotham
+    toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    toggleLabel.Parent = toggleFrame
+    
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 48, 0, 24)
+    toggleButton.Position = UDim2.new(1, -56, 0.5, -12)
+    toggleButton.BackgroundColor3 = default and Color3.fromRGB(100, 100, 255) or Color3.fromRGB(50, 50, 55)
+    toggleButton.Text = ""
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Parent = toggleFrame
+    
+    local toggleBtnCorner = Instance.new("UICorner")
+    toggleBtnCorner.CornerRadius = UDim.new(1, 0)
+    toggleBtnCorner.Parent = toggleButton
+    
+    local toggleCircle = Instance.new("Frame")
+    toggleCircle.Size = UDim2.new(0, 18, 0, 18)
+    toggleCircle.Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+    toggleCircle.BackgroundColor3 = Color3.white
+    toggleCircle.BorderSizePixel = 0
+    toggleCircle.Parent = toggleButton
+    
+    local circleCorner = Instance.new("UICorner")
+    circleCorner.CornerRadius = UDim.new(1, 0)
+    circleCorner.Parent = toggleCircle
+    
+    local enabled = default or false
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        
+        local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        
+        if enabled then
+            TweenService:Create(toggleButton, tweenInfo, {BackgroundColor3 = Color3.fromRGB(100, 100, 255)}):Play()
+            TweenService:Create(toggleCircle, tweenInfo, {Position = UDim2.new(1, -21, 0.5, -9)}):Play()
+        else
+            TweenService:Create(toggleButton, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 55)}):Play()
+            TweenService:Create(toggleCircle, tweenInfo, {Position = UDim2.new(0, 3, 0.5, -9)}):Play()
         end
-    end
+        
+        pcall(function() callback(enabled) end)
+    end)
+end
+
+lib.CreateSlider = function(text, min, max, default, callback, parent)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 62)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = parent
     
-    return (hasKiller and hasSurvivor) or (totalPlayers >= 2 and lib.MapLoaded)
-end
-
-lib.OnGameStateChanged = function()
-    if not lib.GameStarted then
-        lib.ClearAllESP()
-    elseif lib.ESPEnabled then
-        lib.ForceUpdateAllESP()
-    end
-end
-
-lib.StartGameCheckers = function()
-    spawn(function()
-        while true do
-            wait(3)
-            
-            local mapLoaded = lib.CheckMapLoaded()
-            if mapLoaded ~= lib.MapLoaded then
-                lib.MapLoaded = mapLoaded
-                print("Map state changed: " .. tostring(lib.MapLoaded))
-            end
-            
-            local gameStarted = lib.CheckGameStarted()
-            if gameStarted ~= lib.GameStarted then
-                lib.GameStarted = gameStarted
-                print("Game state changed: " .. tostring(lib.GameStarted))
-                lib._cache.roleCache = {}
-                lib.OnGameStateChanged()
-            end
+    local sliderCorner = Instance.new("UICorner")
+    sliderCorner.CornerRadius = UDim.new(0, 10)
+    sliderCorner.Parent = sliderFrame
+    
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Size = UDim2.new(1, -18, 0, 23)
+    sliderLabel.Position = UDim2.new(0, 9, 0, 4)
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.Text = text .. ": " .. default
+    sliderLabel.TextColor3 = Color3.white
+    sliderLabel.TextSize = 14
+    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+    sliderLabel.Parent = sliderFrame
+    
+    local sliderBack = Instance.new("Frame")
+    sliderBack.Size = UDim2.new(1, -18, 0, 11)
+    sliderBack.Position = UDim2.new(0, 9, 1, -19)
+    sliderBack.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    sliderBack.BorderSizePixel = 0
+    sliderBack.Parent = sliderFrame
+    
+    local sliderBackCorner = Instance.new("UICorner")
+    sliderBackCorner.CornerRadius = UDim.new(1, 0)
+    sliderBackCorner.Parent = sliderBack
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    sliderFill.BorderSizePixel = 0
+    sliderFill.Parent = sliderBack
+    
+    local sliderFillCorner = Instance.new("UICorner")
+    sliderFillCorner.CornerRadius = UDim.new(1, 0)
+    sliderFillCorner.Parent = sliderFill
+    
+    local dragging = false
+    
+    sliderBack.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            pcall(function()
+                local mousePos = input.UserInputType == Enum.UserInputType.Touch and input.Position.X or UserInputService:GetMouseLocation().X
+                local sliderPos = sliderBack.AbsolutePosition.X
+                local sliderSize = sliderBack.AbsoluteSize.X
+                
+                local value = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
+                local finalValue = math.floor(min + (max - min) * value)
+                
+                sliderFill.Size = UDim2.new(value, 0, 1, 0)
+                sliderLabel.Text = text .. ": " .. finalValue
+                
+                callback(finalValue)
+            end)
         end
     end)
 end
 
-lib.ForceUpdateAllESP = function()
-    if not lib.ESPEnabled then return end
+lib.CreateButton = function(text, callback, parent)
+    local buttonFrame = Instance.new("TextButton")
+    buttonFrame.Size = UDim2.new(1, 0, 0, 48)
+    buttonFrame.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    buttonFrame.BorderSizePixel = 0
+    buttonFrame.Text = text
+    buttonFrame.TextColor3 = Color3.white
+    buttonFrame.TextSize = 16
+    buttonFrame.Font = Enum.Font.GothamBold
+    buttonFrame.Parent = parent
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and not lib.IsPlayerSpectator(player) then
-            lib.CreateESP(player)
-        end
-    end
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 10)
+    buttonCorner.Parent = buttonFrame
+    
+    buttonFrame.MouseButton1Click:Connect(function()
+        pcall(function()
+            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            TweenService:Create(buttonFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(80, 80, 200)}):Play()
+            task.wait(0.1)
+            TweenService:Create(buttonFrame, tweenInfo, {BackgroundColor3 = Color3.fromRGB(100, 100, 255)}):Play()
+            callback()
+        end)
+    end)
 end
 
--- ============================================
--- TOGGLE FUNCTIONS (CALLBACKS)
--- ============================================
+lib.CreateColorPicker = function(text, defaultColor, callback, parent)
+    local colorFrame = Instance.new("Frame")
+    colorFrame.Size = UDim2.new(1, 0, 0, 48)
+    colorFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    colorFrame.BorderSizePixel = 0
+    colorFrame.Parent = parent
+    
+    local colorCorner = Instance.new("UICorner")
+    colorCorner.CornerRadius = UDim.new(0, 10)
+    colorCorner.Parent = colorFrame
+    
+    local colorLabel = Instance.new("TextLabel")
+    colorLabel.Size = UDim2.new(1, -68, 1, 0)
+    colorLabel.Position = UDim2.new(0, 13, 0, 0)
+    colorLabel.BackgroundTransparency = 1
+    colorLabel.Text = text
+    colorLabel.TextColor3 = Color3.white
+    colorLabel.TextSize = 15
+    colorLabel.Font = Enum.Font.Gotham
+    colorLabel.TextXAlignment = Enum.TextXAlignment.Left
+    colorLabel.Parent = colorFrame
+    
+    local colorDisplay = Instance.new("TextButton")
+    colorDisplay.Size = UDim2.new(0, 38, 0, 28)
+    colorDisplay.Position = UDim2.new(1, -46, 0.5, -14)
+    colorDisplay.BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255)
+    colorDisplay.BorderSizePixel = 0
+    colorDisplay.Text = ""
+    colorDisplay.Parent = colorFrame
+    
+    local displayCorner = Instance.new("UICorner")
+    displayCorner.CornerRadius = UDim.new(0, 8)
+    displayCorner.Parent = colorDisplay
+    
+    local colors = {
+        Color3.fromRGB(255, 0, 0),
+        Color3.fromRGB(0, 255, 0),
+        Color3.fromRGB(0, 0, 255),
+        Color3.fromRGB(255, 255, 0),
+        Color3.fromRGB(255, 0, 255),
+        Color3.fromRGB(0, 255, 255),
+        Color3.fromRGB(255, 255, 255),
+        Color3.fromRGB(255, 165, 0),
+    }
+    
+    local currentIndex = 1
+    
+    colorDisplay.MouseButton1Click:Connect(function()
+        pcall(function()
+            currentIndex = currentIndex + 1
+            if currentIndex > #colors then currentIndex = 1 end
+            
+            colorDisplay.BackgroundColor3 = colors[currentIndex]
+            callback(colors[currentIndex])
+        end)
+    end)
+end
 
+-- Crosshair
+lib.CrosshairFrame = Instance.new("Frame")
+lib.CrosshairFrame.Size = UDim2.new(0, 22, 0, 22)
+lib.CrosshairFrame.Position = UDim2.new(0.5, -11, 0.5, -11)
+lib.CrosshairFrame.BackgroundTransparency = 1
+lib.CrosshairFrame.Visible = false
+lib.CrosshairFrame.ZIndex = 10
+lib.CrosshairFrame.Parent = ScreenGui
+
+local crosshairH = Instance.new("Frame")
+crosshairH.Size = UDim2.new(1, 0, 0, 2)
+crosshairH.Position = UDim2.new(0, 0, 0.5, -1)
+crosshairH.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+crosshairH.BorderSizePixel = 0
+crosshairH.Parent = lib.CrosshairFrame
+
+local crosshairV = Instance.new("Frame")
+crosshairV.Size = UDim2.new(0, 2, 1, 0)
+crosshairV.Position = UDim2.new(0.5, -1, 0, 0)
+crosshairV.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+crosshairV.BorderSizePixel = 0
+crosshairV.Parent = lib.CrosshairFrame
+
+-- Aimbot FOV
+lib.AimbotFOVCircle = Instance.new("Frame")
+lib.AimbotFOVCircle.Size = UDim2.new(0, 100, 0, 100)
+lib.AimbotFOVCircle.Position = UDim2.new(0.5, -50, 0.5, -50)
+lib.AimbotFOVCircle.BackgroundTransparency = 0.8
+lib.AimbotFOVCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+lib.AimbotFOVCircle.BorderSizePixel = 0
+lib.AimbotFOVCircle.Visible = false
+lib.AimbotFOVCircle.ZIndex = 5
+lib.AimbotFOVCircle.Parent = ScreenGui
+
+local fovCorner = Instance.new("UICorner")
+fovCorner.CornerRadius = UDim.new(1, 0)
+fovCorner.Parent = lib.AimbotFOVCircle
+
+-- ============================================
+-- TOGGLE CALLBACKS
+-- ============================================
 lib.ToggleESP = function(state)
     lib.ESPEnabled = state
-    
     if state then
-        print("ESP Players: ENABLED")
-        lib.ForceUpdateAllESP()
-        
-        lib.PlayerAddedConnection = Players.PlayerAdded:Connect(function(newPlayer)
-            wait(3)
-            if not lib.IsPlayerSpectator(newPlayer) then
-                lib.CreateESP(newPlayer)
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                lib.CreateESP(player)
             end
-        end)
-        
-        Players.PlayerRemoving:Connect(function(leavingPlayer)
-            lib.RemoveESP(leavingPlayer)
-        end)
-        
-        if lib.RGBESPEnabled then
-            lib.StartRGBESP()
         end
-        
-        if lib.SuperESPEnabled then
-            lib.StartSuperESP()
-        end
+        if lib.RGBESPEnabled then lib.StartRGBESP() end
+        if lib.SuperESPEnabled then lib.StartSuperESP() end
     else
-        print("ESP Players: DISABLED")
         lib.ClearAllESP()
-        
-        if lib.PlayerAddedConnection then
-            lib.PlayerAddedConnection:Disconnect()
-            lib.PlayerAddedConnection = nil
-        end
-        
         lib.StopRGBESP()
         lib.StopSuperESP()
     end
@@ -1455,594 +1140,300 @@ end
 
 lib.ToggleGeneratorESP = function(state)
     lib.GeneratorESPEnabled = state
-    
-    if state then
-        lib.FindAndCreateGenerators()
-        print("ESP Generators: ENABLED")
-        
-        if lib.SuperESPEnabled then
-            lib.StartSuperESP()
-        end
-    else
-        lib.ObjectESPManager:ClearAll()
-        print("ESP Generators: DISABLED")
-    end
-end
-
-lib.TogglePalletESP = function(state)
-    lib.PalletESPEnabled = state
-    
-    if state then
-        lib.FindAndCreatePallets()
-        print("ESP Pallets: ENABLED")
-        
-        if lib.SuperESPEnabled then
-            lib.StartSuperESP()
-        end
-    else
-        lib.ObjectESPManager:ClearAll()
-        print("ESP Pallets: DISABLED")
-    end
+    if state then lib.FindAndCreateGenerators() end
 end
 
 lib.ToggleRGBESP = function(state)
     lib.RGBESPEnabled = state
-    
-    if state then
-        lib.StartRGBESP()
-        print("RGB ESP: ENABLED")
-    else
-        lib.StopRGBESP()
-        lib.KillerColor = Color3.fromRGB(255, 0, 0)
-        lib.SurvivorColor = Color3.fromRGB(0, 255, 0)
-        lib.UpdateESP()
-        print("RGB ESP: DISABLED")
-    end
-end
-
-lib.UpdateRGBESPSpeed = function(value)
-    lib.RGBESPSpeed = value
-    print("RGB ESP Speed: " .. value)
+    if state then lib.StartRGBESP() else lib.StopRGBESP() end
 end
 
 lib.ToggleSuperESP = function(state)
     lib.SuperESPEnabled = state
-    
-    if state then
-        lib.StartSuperESP()
-        print("Super ESP: ENABLED")
-    else
-        lib.StopSuperESP()
-        print("Super ESP: DISABLED")
-    end
-end
-
-lib.UpdateSuperESPSpeed = function(value)
-    lib.SuperESPSpeed = value
-    print("Super ESP Speed: " .. value)
+    if state then lib.StartSuperESP() else lib.StopSuperESP() end
 end
 
 lib.ToggleWalkSpeed = function(state)
     lib.walkSpeedActive = state
-    
-    if state then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = lib.walkSpeed
-            end
-        end
-        print("Walk Speed: ENABLED (" .. lib.walkSpeed .. ")")
-    else
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16
-            end
-        end
-        print("Walk Speed: DISABLED")
-    end
-end
-
-lib.UpdateWalkSpeedValue = function(value)
-    lib.walkSpeed = value
-    if lib.walkSpeedActive then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = value
-            end
-        end
-    end
-    print("Walk Speed Value: " .. value)
 end
 
 lib.ToggleJumpPower = function(state)
     lib.JumpPowerEnabled = state
-    
-    if state then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.JumpPower = lib.JumpPowerValue
-            end
-        end
-        print("Jump Power: ENABLED (" .. lib.JumpPowerValue .. ")")
-    else
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.JumpPower = 50
-            end
-        end
-        print("Jump Power: DISABLED")
-    end
-end
-
-lib.UpdateJumpPowerValue = function(value)
-    lib.JumpPowerValue = value
-    if lib.JumpPowerEnabled then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.JumpPower = value
-            end
-        end
-    end
-    print("Jump Power Value: " .. value)
-end
-
-lib.ToggleFly = function(state)
-    lib.FlyEnabled = state
-    
-    if state then
-        lib.StartFly()
-        print("Fly: ENABLED")
-    else
-        lib.StopFly()
-        print("Fly: DISABLED")
-    end
-end
-
-lib.UpdateFlySpeed = function(value)
-    lib.FlySpeedValue = value
-    print("Fly Speed: " .. value)
 end
 
 lib.ToggleNoclip = function(state)
     lib.NoclipEnabled = state
-    
-    if state then
-        lib.StartNoclip()
-        print("Noclip: ENABLED")
-    else
-        lib.StopNoclip()
-        print("Noclip: DISABLED")
-    end
+    if state then lib.StartNoclip() else lib.StopNoclip() end
 end
 
 lib.ToggleGodMode = function(state)
     lib.GodModeEnabled = state
-    
-    if state then
-        lib.StartGodMode()
-        print("God Mode: ENABLED")
-    else
-        lib.StopGodMode()
-        print("God Mode: DISABLED")
-    end
-end
-
-lib.ToggleInvisible = function(state)
-    lib.InvisibleEnabled = state
-    print("Invisible: " .. (state and "ENABLED" or "DISABLED") .. " (Placeholder)")
+    if state then lib.StartGodMode() else lib.StopGodMode() end
 end
 
 lib.ToggleAntiStun = function(state)
     lib.AntiStunEnabled = state
-    
-    if state then
-        lib.StartAntiStun()
-        print("Anti Stun: ENABLED")
-    else
-        lib.StopAntiStun()
-        print("Anti Stun: DISABLED")
-    end
-end
-
-lib.ToggleAntiGrab = function(state)
-    lib.AntiGrabEnabled = state
-    
-    if state then
-        lib.StartAntiGrab()
-        print("Anti Grab: ENABLED")
-    else
-        lib.StopAntiGrab()
-        print("Anti Grab: DISABLED")
-    end
-end
-
-lib.ToggleMaxEscapeChance = function(state)
-    lib.MaxEscapeChanceEnabled = state
-    
-    if state then
-        lib.StartEscapeChance()
-        print("100% Escape Chance: ENABLED")
-    else
-        lib.StopEscapeChance()
-        print("100% Escape Chance: DISABLED")
-    end
-end
-
-lib.ToggleGrabKiller = function(state)
-    lib.GrabKillerEnabled = state
-    
-    if state then
-        lib.StartGrabKiller()
-        print("Grab Killer: ENABLED")
-    else
-        lib.StopGrabKiller()
-        print("Grab Killer: DISABLED")
-    end
-end
-
-lib.ToggleRapidFire = function(state)
-    lib.RapidFireEnabled = state
-    
-    if state then
-        lib.StartRapidFire()
-        print("Rapid Fire: ENABLED")
-    else
-        lib.StopRapidFire()
-        print("Rapid Fire: DISABLED")
-    end
-end
-
-lib.ToggleDisableTwistAnimations = function(state)
-    lib.DisableTwistAnimationsEnabled = state
-    
-    if state then
-        lib.StartDisableTwistAnimations()
-        print("Disable Twist Animations: ENABLED")
-    else
-        lib.StopDisableTwistAnimations()
-        print("Disable Twist Animations: DISABLED")
-    end
-end
-
-lib.ToggleRotatePerson = function(state)
-    lib.RotatePersonEnabled = state
-    
-    if state then
-        lib.StartRotatePerson()
-        print("Rotate Person: ENABLED")
-    else
-        lib.StopRotatePerson()
-        print("Rotate Person: DISABLED")
-    end
-end
-
-lib.UpdateRotateSpeed = function(value)
-    lib.RotateSpeed = value
-    print("Rotate Speed: " .. value)
+    if state then lib.StartAntiStun() else lib.StopAntiStun() end
 end
 
 lib.ToggleNoFog = function(state)
     lib.NoFogEnabled = state
-    
-    if state then
-        lib.StartNoFog()
-        print("No Fog: ENABLED")
-    else
-        lib.StopNoFog()
-        print("No Fog: DISABLED")
-    end
-end
-
-lib.ToggleTime = function(state)
-    lib.TimeEnabled = state
-    
-    if state then
-        lib.StartCustomTime()
-        print("Custom Time: ENABLED")
-    else
-        lib.StopCustomTime()
-        print("Custom Time: DISABLED")
-    end
-end
-
-lib.UpdateTimeValue = function(value)
-    lib.TimeValue = value
-    if lib.TimeEnabled then
-        Lighting.ClockTime = value
-    end
-    print("Time Value: " .. value)
-end
-
-lib.ToggleMapColor = function(state)
-    lib.MapColorEnabled = state
-    
-    if state then
-        lib.StartMapColor()
-        print("Map Color: ENABLED")
-    else
-        lib.StopMapColor()
-        print("Map Color: DISABLED")
-    end
-end
-
-lib.UpdateMapColor = function(color)
-    lib.MapColor = color
-    if lib.MapColorEnabled then
-        Lighting.Ambient = color
-        Lighting.OutdoorAmbient = color
-    end
-end
-
-lib.UpdateMapSaturation = function(value)
-    lib.MapColorSaturation = value
-    if lib.MapColorEnabled then
-        if not Lighting:FindFirstChild("ColorCorrection") then
-            local cc = Instance.new("ColorCorrectionEffect")
-            cc.Name = "ColorCorrection"
-            cc.Saturation = value
-            cc.Parent = Lighting
-        else
-            Lighting.ColorCorrection.Saturation = value
-        end
-    end
+    if state then lib.StartNoFog() else lib.StopNoFog() end
 end
 
 lib.ToggleCrosshair = function(state)
     lib.CrosshairEnabled = state
     lib.CrosshairFrame.Visible = state
-    print("Crosshair: " .. (state and "ENABLED" or "DISABLED"))
 end
 
 lib.ToggleAimbot = function(state)
     lib.AimbotEnabled = state
-    lib.AimbotFunctions.updateAimbotUI()
+    lib.AimbotFOVCircle.Visible = state
     
     if state then
-        lib.StartAimbot()
-        print("Aimbot: ENABLED")
+        if lib.Connections.Aimbot then lib.Connections.Aimbot:Disconnect() end
+        lib.Connections.Aimbot = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                if lib.AimbotEnabled then
+                    local target = lib.AimbotFunctions.findClosestPlayer()
+                    if target then
+                        lib.AimbotFunctions.aimAt(target)
+                    end
+                end
+            end)
+        end)
     else
-        lib.StopAimbot()
-        print("Aimbot: DISABLED")
+        if lib.Connections.Aimbot then
+            lib.Connections.Aimbot:Disconnect()
+            lib.Connections.Aimbot = nil
+        end
     end
 end
 
-lib.UpdateAimbotFOV = function(value)
-    lib.AimbotFOV = value
-    lib.AimbotFunctions.updateAimbotUI()
-    print("Aimbot FOV: " .. value)
-end
-
-lib.UpdateAimbotSmoothness = function(value)
-    lib.AimbotSmoothness = value
-    print("Aimbot Smoothness: " .. value)
-end
-
-lib.ToggleAimbotTeamCheck = function(state)
-    lib.AimbotTeamCheck = state
-    print("Aimbot Team Check: " .. (state and "ENABLED" or "DISABLED"))
-end
-
-lib.ToggleAimbotVisibleCheck = function(state)
-    lib.AimbotVisibleCheck = state
-    print("Aimbot Visible Check: " .. (state and "ENABLED" or "DISABLED"))
-end
-
-lib.ToggleAimbotWallCheck = function(state)
-    lib.AimbotWallCheck = state
-    print("Aimbot Wall Check: " .. (state and "ENABLED" or "DISABLED"))
-end
-
 -- ============================================
--- CREATE UI ELEMENTS (LENGKAP)
+-- CREATE UI ELEMENTS
 -- ============================================
+print("⚙️ Adding features...")
 
 -- ESP Tab
-lib.CreateToggle("ESP Players", false, lib.ToggleESP, tabFrames["ESP"])
-lib.CreateToggle("ESP Generators", false, lib.ToggleGeneratorESP, tabFrames["ESP"])
-lib.CreateToggle("ESP Pallets", false, lib.TogglePalletESP, tabFrames["ESP"])
-lib.CreateToggle("RGB ESP", false, lib.ToggleRGBESP, tabFrames["ESP"])
-lib.CreateSlider("RGB ESP Speed", 0.1, 5, 1, lib.UpdateRGBESPSpeed, tabFrames["ESP"])
-lib.CreateToggle("Super ESP", false, lib.ToggleSuperESP, tabFrames["ESP"])
-lib.CreateSlider("Super ESP Speed", 0.1, 5, 1, lib.UpdateSuperESPSpeed, tabFrames["ESP"])
+lib.CreateToggle("👁️ ESP Players", false, lib.ToggleESP, tabFrames["ESP"])
+lib.CreateToggle("⚡ Generators", false, lib.ToggleGeneratorESP, tabFrames["ESP"])
+lib.CreateToggle("🌈 RGB ESP", false, lib.ToggleRGBESP, tabFrames["ESP"])
+lib.CreateSlider("RGB Speed", 0.1, 5, 1, function(v) lib.RGBESPSpeed = v end, tabFrames["ESP"])
+lib.CreateToggle("✨ Super ESP", false, lib.ToggleSuperESP, tabFrames["ESP"])
+lib.CreateSlider("Super Speed", 0.1, 5, 1, function(v) lib.SuperESPSpeed = v end, tabFrames["ESP"])
 
 -- Colors Tab
-lib.CreateColorPicker("Killer Color", lib.KillerColor, function(color)
-    lib.KillerColor = color
-    if lib.ESPEnabled then
-        wait(0.1)
-        lib.UpdateESP()
-    end
-end, tabFrames["COLORS"])
+lib.CreateColorPicker("🔴 Killer", lib.KillerColor, function(c) lib.KillerColor = c; lib.UpdateESP() end, tabFrames["COLORS"])
+lib.CreateColorPicker("🟢 Survivor", lib.SurvivorColor, function(c) lib.SurvivorColor = c; lib.UpdateESP() end, tabFrames["COLORS"])
+lib.CreateColorPicker("🟡 Generator", lib.GeneratorColor, function(c) lib.GeneratorColor = c end, tabFrames["COLORS"])
 
-lib.CreateColorPicker("Survivor Color", lib.SurvivorColor, function(color)
-    lib.SurvivorColor = color
-    if lib.ESPEnabled then
-        wait(0.1)
-        lib.UpdateESP()
-    end
-end, tabFrames["COLORS"])
-
-lib.CreateColorPicker("Generator Color", lib.GeneratorColor, function(color)
-    lib.GeneratorColor = color
-    if lib.GeneratorESPEnabled then
-        lib.UpdateGeneratorESP()
-    end
-end, tabFrames["COLORS"])
-
-lib.CreateColorPicker("Pallet Color", lib.PalletColor, function(color)
-    lib.PalletColor = color
-    if lib.PalletESPEnabled then
-        lib.UpdatePalletESP()
-    end
-end, tabFrames["COLORS"])
-
--- Features Tab
-lib.CreateToggle("Walk Speed", false, lib.ToggleWalkSpeed, tabFrames["FEATURES"])
-lib.CreateSlider("Walk Speed Value", 16, 500, 16, lib.UpdateWalkSpeedValue, tabFrames["FEATURES"])
-lib.CreateToggle("Jump Power", false, lib.ToggleJumpPower, tabFrames["FEATURES"])
-lib.CreateSlider("Jump Power Value", 0, 500, 50, lib.UpdateJumpPowerValue, tabFrames["FEATURES"])
-lib.CreateToggle("Fly", false, lib.ToggleFly, tabFrames["FEATURES"])
-lib.CreateSlider("Fly Speed", 0, 500, 50, lib.UpdateFlySpeed, tabFrames["FEATURES"])
-lib.CreateToggle("Noclip", false, lib.ToggleNoclip, tabFrames["FEATURES"])
-lib.CreateToggle("God Mode", false, lib.ToggleGodMode, tabFrames["FEATURES"])
-lib.CreateToggle("Invisible", false, lib.ToggleInvisible, tabFrames["FEATURES"])
-lib.CreateToggle("Anti Stun", false, lib.ToggleAntiStun, tabFrames["FEATURES"])
-lib.CreateToggle("Anti Grab", false, lib.ToggleAntiGrab, tabFrames["FEATURES"])
-lib.CreateToggle("100% Escape", false, lib.ToggleMaxEscapeChance, tabFrames["FEATURES"])
-lib.CreateToggle("Grab Killer", false, lib.ToggleGrabKiller, tabFrames["FEATURES"])
-lib.CreateToggle("Rapid Fire", false, lib.ToggleRapidFire, tabFrames["FEATURES"])
-lib.CreateToggle("Disable Twist Anim", false, lib.ToggleDisableTwistAnimations, tabFrames["FEATURES"])
-lib.CreateToggle("Rotate Person", false, lib.ToggleRotatePerson, tabFrames["FEATURES"])
-lib.CreateSlider("Rotate Speed", 0, 1000, 100, lib.UpdateRotateSpeed, tabFrames["FEATURES"])
-lib.CreateButton("Teleport to Player", lib.OpenTeleportMenu, tabFrames["FEATURES"])
+-- Move Tab
+lib.CreateToggle("🏃 Walk Speed", false, lib.ToggleWalkSpeed, tabFrames["MOVE"])
+lib.CreateSlider("Speed", 16, 500, 16, function(v) lib.walkSpeed = v end, tabFrames["MOVE"])
+lib.CreateToggle("🦘 Jump Power", false, lib.ToggleJumpPower, tabFrames["MOVE"])
+lib.CreateSlider("Jump", 50, 500, 50, function(v) lib.JumpPowerValue = v end, tabFrames["MOVE"])
+lib.CreateToggle("👻 Noclip", false, lib.ToggleNoclip, tabFrames["MOVE"])
+lib.CreateToggle("⭐ God Mode", false, lib.ToggleGodMode, tabFrames["MOVE"])
+lib.CreateToggle("🛡️ Anti Stun", false, lib.ToggleAntiStun, tabFrames["MOVE"])
+lib.CreateButton("📍 Teleport", lib.OpenTeleportMenu, tabFrames["MOVE"])
 
 -- Visual Tab
-lib.CreateToggle("No Fog", false, lib.ToggleNoFog, tabFrames["VISUAL"])
-lib.CreateToggle("Custom Time", false, lib.ToggleTime, tabFrames["VISUAL"])
-lib.CreateSlider("Time Value", 0, 24, 12, lib.UpdateTimeValue, tabFrames["VISUAL"])
-lib.CreateToggle("Map Color", false, lib.ToggleMapColor, tabFrames["VISUAL"])
-lib.CreateColorPicker("Map Color Picker", lib.MapColor, lib.UpdateMapColor, tabFrames["VISUAL"])
-lib.CreateSlider("Map Saturation", -1, 2, 1, lib.UpdateMapSaturation, tabFrames["VISUAL"])
-lib.CreateToggle("Crosshair", false, lib.ToggleCrosshair, tabFrames["VISUAL"])
-lib.CreateToggle("Third Person (Killer)", false, lib.ToggleThirdPerson, tabFrames["VISUAL"])
+lib.CreateToggle("🌫️ No Fog", false, lib.ToggleNoFog, tabFrames["VISUAL"])
+lib.CreateToggle("➕ Crosshair", false, lib.ToggleCrosshair, tabFrames["VISUAL"])
 
--- Aimbot Tab
-lib.CreateToggle("Aimbot", false, lib.ToggleAimbot, tabFrames["AIMBOT"])
-lib.CreateSlider("Aimbot FOV", 1, 200, 50, lib.UpdateAimbotFOV, tabFrames["AIMBOT"])
-lib.CreateSlider("Aimbot Smoothness", 1, 100, 10, lib.UpdateAimbotSmoothness, tabFrames["AIMBOT"])
-lib.CreateToggle("Team Check (Killer Only)", true, lib.ToggleAimbotTeamCheck, tabFrames["AIMBOT"])
-lib.CreateToggle("Visible Check", true, lib.ToggleAimbotVisibleCheck, tabFrames["AIMBOT"])
-lib.CreateToggle("Wall Check", false, lib.ToggleAimbotWallCheck, tabFrames["AIMBOT"])
+-- Aim Tab
+lib.CreateToggle("🎯 Aimbot", false, lib.ToggleAimbot, tabFrames["AIM"])
+lib.CreateSlider("FOV", 10, 200, 50, function(v) 
+    lib.AimbotFOV = v
+    lib.AimbotFOVCircle.Size = UDim2.new(0, v * 2, 0, v * 2)
+    lib.AimbotFOVCircle.Position = UDim2.new(0.5, -v, 0.5, -v)
+end, tabFrames["AIM"])
+lib.CreateSlider("Smooth", 1, 100, 10, function(v) lib.AimbotSmoothness = v end, tabFrames["AIM"])
+lib.CreateToggle("👥 Team Check", true, function(s) lib.AimbotTeamCheck = s end, tabFrames["AIM"])
 
--- Teleport Tab (akan diisi otomatis oleh tombol di Features)
+print("✅ All features added!")
 
 -- ============================================
--- FLOATING MENU BUTTON
+-- FLOATING BUTTON (MOBILE OPTIMIZED)
 -- ============================================
+print("🔘 Creating floating button...")
 
-lib.FloatingButton = Instance.new("TextButton")
-lib.FloatingButton.Name = "MenuButton"
-lib.FloatingButton.Size = UDim2.new(0, 70, 0, 70)
-lib.FloatingButton.Position = UDim2.new(0, 20, 1, -90)
-lib.FloatingButton.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+lib.FloatingButton = Instance.new("ImageButton")
+lib.FloatingButton.Size = UDim2.new(0, 75, 0, 75)
+lib.FloatingButton.Position = UDim2.new(0, 15, 1, -95)
+lib.FloatingButton.Image = "https://files.catbox.moe/8h7dgs.jpg"
+lib.FloatingButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
 lib.FloatingButton.BorderSizePixel = 0
-lib.FloatingButton.Text = "⚡"
-lib.FloatingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-lib.FloatingButton.TextSize = 36
-lib.FloatingButton.Font = Enum.Font.GothamBold
 lib.FloatingButton.ZIndex = 1000
-lib.FloatingButton.Parent = lib.ScreenGui
+lib.FloatingButton.Parent = ScreenGui
 
 local floatCorner = Instance.new("UICorner")
-floatCorner.CornerRadius = UDim.new(0, 35)
+floatCorner.CornerRadius = UDim.new(1, 0)
 floatCorner.Parent = lib.FloatingButton
 
--- Menu toggle
-lib.MenuOpen = true
-lib.MainFrame.Position = UDim2.new(0.025, 0, 0.05, 0)
+local floatStroke = Instance.new("UIStroke")
+floatStroke.Color = Color3.fromRGB(255, 255, 255)
+floatStroke.Thickness = 4
+floatStroke.Parent = lib.FloatingButton
 
-lib.ToggleMenu = function()
-    lib.MenuOpen = not lib.MenuOpen
-    local targetPos = lib.MenuOpen and UDim2.new(0.025, 0, 0.05, 0) or UDim2.new(0, -1000, 0.05, 0)
-    local tween = TweenService:Create(lib.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
-        {Position = targetPos})
-    tween:Play()
-    print("Menu: " .. (lib.MenuOpen and "OPENED" or "CLOSED"))
-end
+-- Make button draggable
+local btnDragToggle = false
+local btnDragStart = nil
+local btnStartPos = nil
 
-lib.FloatingButton.MouseButton1Click:Connect(function()
-    lib.ToggleMenu()
+lib.FloatingButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        btnDragToggle = true
+        btnDragStart = input.Position
+        btnStartPos = lib.FloatingButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                btnDragToggle = false
+            end
+        end)
+    end
 end)
 
+UserInputService.InputChanged:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and btnDragToggle then
+        local delta = input.Position - btnDragStart
+        lib.FloatingButton.Position = UDim2.new(btnStartPos.X.Scale, btnStartPos.X.Offset + delta.X, btnStartPos.Y.Scale, btnStartPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Menu toggle
+lib.MenuOpen = false
+
+lib.FloatingButton.MouseButton1Click:Connect(function()
+    lib.MenuOpen = not lib.MenuOpen
+    lib.MainFrame.Visible = lib.MenuOpen
+    
+    if lib.MenuOpen then
+        lib.MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        lib.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+        TweenService:Create(lib.MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+            {Size = UDim2.new(0, 500, 0, 600), Position = UDim2.new(0.5, -250, 0.5, -300)}):Play()
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    lib.MenuOpen = false
+    TweenService:Create(lib.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), 
+        {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+    task.wait(0.3)
+    lib.MainFrame.Visible = false
+end)
+
+print("✅ Floating button created!")
+
 -- ============================================
--- INITIAL SETUP
+-- MOVEMENT UPDATER
 -- ============================================
-
--- Notification
-local Notification = Instance.new("TextLabel")
-Notification.Name = "MobileHint"
-Notification.Size = UDim2.new(0.8, 0, 0, 60)
-Notification.Position = UDim2.new(0.1, 0, 0.5, -30)
-Notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-Notification.BackgroundTransparency = 0.5
-Notification.Text = "Tap ⚡ button to open menu\nAll features included!"
-Notification.TextColor3 = Color3.fromRGB(255, 255, 255)
-Notification.TextSize = 16
-Notification.Font = Enum.Font.GothamBold
-Notification.TextStrokeTransparency = 0
-Notification.ZIndex = 1000
-Notification.Parent = lib.ScreenGui
-
-local notifCorner = Instance.new("UICorner")
-notifCorner.CornerRadius = UDim.new(0, 12)
-notifCorner.Parent = Notification
-
--- Animate notification
-Notification.Position = UDim2.new(0.5, -150, 0.5, -30)
-local notifTween = TweenService:Create(Notification, TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), 
-    {Position = UDim2.new(0.5, -150, 0.1, 0)})
-notifTween:Play()
-
-delay(5, function()
-    local hideTween = TweenService:Create(Notification, TweenInfo.new(0.7, Enum.EasingStyle.Quint, Enum.EasingDirection.In), 
-        {Position = UDim2.new(0.5, -150, 1, 100)})
-    hideTween:Play()
-    hideTween.Completed:Connect(function()
-        Notification:Destroy()
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                if lib.walkSpeedActive then
+                    humanoid.WalkSpeed = lib.walkSpeed
+                end
+                if lib.JumpPowerEnabled then
+                    humanoid.JumpPower = lib.JumpPowerValue
+                end
+            end
+        end
     end)
 end)
 
--- Start game checkers
-lib.StartGameCheckers()
+-- ============================================
+-- NOTIFICATION
+-- ============================================
+local Notification = Instance.new("Frame")
+Notification.Size = UDim2.new(0, 320, 0, 95)
+Notification.Position = UDim2.new(0.5, -160, 0, -120)
+Notification.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Notification.BorderSizePixel = 0
+Notification.ZIndex = 1001
+Notification.Parent = ScreenGui
 
--- Auto-refresh teleport list when menu is open
-spawn(function()
-    while true do
-        wait(5)
-        if lib.TeleportFrame and lib.TeleportFrame.Visible then
-            lib.UpdateTeleportPlayersList()
-        end
-    end
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 15)
+notifCorner.Parent = Notification
+
+local notifStroke = Instance.new("UIStroke")
+notifStroke.Color = Color3.fromRGB(100, 100, 255)
+notifStroke.Thickness = 3
+notifStroke.Parent = Notification
+
+local notifTitle = Instance.new("TextLabel")
+notifTitle.Size = UDim2.new(1, 0, 0, 38)
+notifTitle.BackgroundTransparency = 1
+notifTitle.Text = "⚡ LOADED!"
+notifTitle.TextColor3 = Color3.fromRGB(100, 100, 255)
+notifTitle.TextSize = 19
+notifTitle.Font = Enum.Font.GothamBold
+notifTitle.Parent = Notification
+
+local notifDesc = Instance.new("TextLabel")
+notifDesc.Size = UDim2.new(1, 0, 1, -38)
+notifDesc.Position = UDim2.new(0, 0, 0, 38)
+notifDesc.BackgroundTransparency = 1
+notifDesc.Text = "Tap icon to open menu!\nAll features ready 🎮"
+notifDesc.TextColor3 = Color3.white
+notifDesc.TextSize = 13
+notifDesc.Font = Enum.Font.Gotham
+notifDesc.Parent = Notification
+
+TweenService:Create(Notification, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+    {Position = UDim2.new(0.5, -160, 0, 18)}):Play()
+
+task.spawn(function()
+    task.wait(5)
+    TweenService:Create(Notification, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), 
+        {Position = UDim2.new(0.5, -160, 0, -120)}):Play()
+    task.wait(0.5)
+    Notification:Destroy()
 end)
 
--- Unlock cursor
-lib.UnlockCursor()
+-- ============================================
+-- CHARACTER RESPAWN HANDLER
+-- ============================================
+LocalPlayer.CharacterAdded:Connect(function(character)
+    task.wait(1)
+    pcall(function()
+        if lib.walkSpeedActive then
+            character:WaitForChild("Humanoid").WalkSpeed = lib.walkSpeed
+        end
+        if lib.JumpPowerEnabled then
+            character:WaitForChild("Humanoid").JumpPower = lib.JumpPowerValue
+        end
+        if lib.NoclipEnabled then
+            lib.StartNoclip()
+        end
+        if lib.GodModeEnabled then
+            lib.StartGodMode()
+        end
+        if lib.ESPEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then
+                    lib.CreateESP(player)
+                end
+            end
+        end
+    end)
+end)
 
--- Print instructions
+-- ============================================
+-- FINAL
+-- ============================================
 print("=" .. string.rep("=", 50) .. "=")
-print("VIOLENCE DISTRICT ULTIMATE - MOBILE EDITION")
+print("    ⚡ IKAXZU HUB - MOBILE EDITION ⚡")
 print("=" .. string.rep("=", 50) .. "=")
-print("✅ ALL FEATURES INCLUDED - NOTHING REMOVED")
-print("✅ SAME AS PC VERSION - ADAPTED FOR TOUCH")
-print("")
-print("📱 CONTROLS:")
-print("  • Tap ⚡ button to open/close menu")
-print("  • Tap and drag title to move window")
-print("  • Tap toggles to enable/disable features")
-print("  • Drag sliders with your finger")
-print("  • Use color pickers by tapping and dragging")
-print("")
-print("🎮 FEATURES:")
-print("  • ESP (Players, Generators, Pallets)")
-print("  • RGB ESP & Super ESP with speed control")
-print("  • Full color customization")
-print("  • Aimbot with FOV, smoothness, wall check")
-print("  • Movement (WalkSpeed, JumpPower, Fly, Noclip)")
-print("  • God Mode, Anti Stun, Anti Grab")
-print("  • 100% Escape, Grab Killer, Rapid Fire")
-print("  • Visual (No Fog, Time, Map Color)")
-print("  • Teleport to any player")
-print("  • And many more...")
+print("✅ LOADED SUCCESSFULLY!")
+print("📱 TAP THE ICON TO OPEN MENU!")
+print("🎮 ALL FEATURES READY!")
+print("🔑 KEY: ikaxzu")
 print("=" .. string.rep("=", 50) .. "=")
