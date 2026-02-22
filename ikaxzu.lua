@@ -357,3 +357,6 @@ local function CreateTabs()
     CreditSection:NewLabel("Special thanks to all users!")
     CreditSection:NewLabel("Enjoy the script!")
 end
+
+-- Auto-execute CreateTabs after key submission
+-- Note: CreateTabs is called within the Submit Key function, so no need to call it again here.
