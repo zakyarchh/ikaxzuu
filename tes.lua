@@ -94,7 +94,7 @@ local toggleIcon = Instance.new("TextLabel", toggleBtn)
 toggleIcon.BackgroundTransparency = 1
 toggleIcon.Size = UDim2.new(1, 0, 1, 0)
 toggleIcon.Font = Enum.Font.GothamBold
-toggleIcon.Text = "☰"
+toggleIcon.Text = "VD"
 toggleIcon.TextColor3 = col.textMuted
 toggleIcon.TextSize = 18
 
@@ -289,7 +289,7 @@ local fovCircle = Drawing.new("Circle")
 fovCircle.Visible = false
 fovCircle.Thickness = 1
 fovCircle.Color = col.textDim
-fovCircle.Transparency = 0.6
+fovCircle.Transparency = 0.8
 fovCircle.NumSides = 48
 fovCircle.Filled = false
 
@@ -304,7 +304,7 @@ local tabs = {
     {id = "movement", name = "Movement"},
     {id = "visual", name = "Visual"},
     {id = "esp", name = "ESP"},
-    {id = "farm", name = "Farm"}
+    {id = "farm", name = "error"}
 }
 
 local function createPage(id)
@@ -712,7 +712,7 @@ local function collectItem(item)
         task.wait(0.05)
         
         -- return underground first (go down 45 studs from original position)
-        local undergroundPos = CFrame.new(originalFarmPos.X, originalFarmPos.Y - 45, originalFarmPos.Z)
+        local undergroundPos = CFrame.new(originalFarmPos.X, originalFarmPos.Y - 25, originalFarmPos.Z)
         hrp.CFrame = undergroundPos
         task.wait(0.08)
         
