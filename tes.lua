@@ -1,8 +1,8 @@
--- Violence District -- ikaxzu scripter
--- Violence District X escape tsunami for brainroot
--- Delta X Optimized
+-- Violence District-- ikaxzu scripter FULL EDITION
+-- Violence District - Ultimate Cheat
+-- Delta X Optimized | ALL FEATURES
 
-warn("Loading ikaxzu scripter...")
+warn("Loading ikaxzu scripter FULL EDITION...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -12,6 +12,9 @@ local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local plr = Players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
@@ -23,6 +26,10 @@ local settings = {
     esp = false,
     espMode = 1,
     espRgb = false,
+    espItems = false,
+    espWeapons = false,
+    espVehicles = false,
+    espSpawns = false,
     speed = 16,
     jump = 50,
     noclip = false,
@@ -30,24 +37,46 @@ local settings = {
     flyspeed = 50,
     god = false,
     aim = false,
+    silentaim = false,
     aimfov = 100,
     showfov = false,
+    spinbot = false,
+    killaura = false,
+    reach = false,
+    reachdist = 15,
     fog = false,
     bright = false,
     cross = false,
     fov = 70,
     vipremove = false,
     wings = false,
-    halo = false
+    halo = false,
+    invisible = false,
+    autoFarm = false,
+    autoCollect = false,
+    farmDivine = false,
+    farmCelestial = false,
+    farmInfinity = false,
+    antiKick = false,
+    antiBan = false,
+    antiAfk = false,
+    trails = false,
+    rgbChar = false,
+    sizeChanger = false,
+    charSize = 1
 }
 
 local connections = {}
 local espData = {}
+local itemESP = {}
+local waypoints = {}
 local oldHealth = 0
 local immortal = false
 local removedObjects = {}
 local wingsModel = nil
 local haloModel = nil
+local farmingItems = {}
+local lastPosition = nil
 
 -- Get Parent
 local function getParent()
@@ -128,7 +157,7 @@ title.BackgroundTransparency = 1
 title.Position = UDim2.new(0, 12, 0, 0)
 title.Size = UDim2.new(1, -50, 1, 0)
 title.Font = Enum.Font.GothamBold
-title.Text = "ikaxzu scripter"
+title.Text = "ikaxzu scripter FULL"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 13
 title.TextXAlignment = Enum.TextXAlignment.Left
@@ -150,37 +179,99 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 4)
 closeCorner.Parent = close
 
+-- Tabs
+local tabContainer = Instance.new("Frame")
+tabContainer.Name = "Tabs"
+tabContainer.Parent = main
+tabContainer.BackgroundTransparency = 1
+tabContainer.Position = UDim2.new(0, 0, 0, 35)
+tabContainer.Size = UDim2.new(1, 0, 0, 30)
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Parent = tabContainer
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+tabLayout.Padding = UDim.new(0, 3)
+
+local activePage = nil
+local pages = {}
+
+local function createTab(name)
+    local tabBtn = Instance.new("TextButton")
+    tabBtn.Parent = tabContainer
+    tabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    tabBtn.BorderSizePixel = 0
+    tabBtn.Size = UDim2.new(0, 70, 1, -5)
+    tabBtn.AutoButtonColor = false
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.Text = name
+    tabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    tabBtn.TextSize = 9
+    
+    local tabCorner = Instance.new("UICorner")
+    tabCorner.CornerRadius = UDim.new(0, 4)
+    tabCorner.Parent = tabBtn
+    
+    local page = Instance.new("ScrollingFrame")
+    page.Name = name
+    page.Parent = main
+    page.Active = true
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.Position = UDim2.new(0, 8, 0, 73)
+    page.Size = UDim2.new(1, -16, 1, -81)
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.ScrollBarThickness = 2
+    page.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+    page.ScrollBarImageTransparency = 0.9
+    page.Visible = false
+    
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = page
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 6)
+    
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        page.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+    end)
+    
+    pages[name] = page
+    
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, btn in pairs(tabContainer:GetChildren()) do
+            if btn:IsA("TextButton") then
+                btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            end
+        end
+        for _, pg in pairs(pages) do
+            pg.Visible = false
+        end
+        
+        tabBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        page.Visible = true
+        activePage = name
+    end)
+    
+    if not activePage then
+        tabBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        page.Visible = true
+        activePage = name
+    end
+    
+    return page
+end
+
 -- Divider
 local div = Instance.new("Frame")
 div.Parent = main
 div.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 div.BackgroundTransparency = 0.95
 div.BorderSizePixel = 0
-div.Position = UDim2.new(0, 0, 0, 35)
+div.Position = UDim2.new(0, 0, 0, 65)
 div.Size = UDim2.new(1, 0, 0, 1)
-
--- Content
-local content = Instance.new("ScrollingFrame")
-content.Name = "Content"
-content.Parent = main
-content.Active = true
-content.BackgroundTransparency = 1
-content.BorderSizePixel = 0
-content.Position = UDim2.new(0, 8, 0, 43)
-content.Size = UDim2.new(1, -16, 1, -51)
-content.CanvasSize = UDim2.new(0, 0, 0, 0)
-content.ScrollBarThickness = 2
-content.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
-content.ScrollBarImageTransparency = 0.9
-
-local layout = Instance.new("UIListLayout")
-layout.Parent = content
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 6)
-
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
-end)
 
 -- FOV Circle
 local fovCircle = Drawing.new("Circle")
@@ -191,10 +282,10 @@ fovCircle.Transparency = 1
 fovCircle.NumSides = 64
 fovCircle.Filled = false
 
--- Functions
-local function label(text)
+-- UI Elements
+local function label(parent, text)
     local lbl = Instance.new("TextLabel")
-    lbl.Parent = content
+    lbl.Parent = parent
     lbl.BackgroundTransparency = 1
     lbl.Size = UDim2.new(1, 0, 0, 18)
     lbl.Font = Enum.Font.GothamBold
@@ -205,11 +296,11 @@ local function label(text)
     lbl.TextTransparency = 0.4
 end
 
-local function toggle_option(text, callback)
+local function toggle_option(parent, text, callback)
     local state = false
     
     local frame = Instance.new("TextButton")
-    frame.Parent = content
+    frame.Parent = parent
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Size = UDim2.new(1, 0, 0, 30)
@@ -270,16 +361,14 @@ local function toggle_option(text, callback)
         
         pcall(callback, state)
     end)
-    
-    return frame
 end
 
-local function slider(text, min, max, def, callback)
+local function slider(parent, text, min, max, def, callback)
     local val = def
     local dragging = false
     
     local frame = Instance.new("Frame")
-    frame.Parent = content
+    frame.Parent = parent
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Size = UDim2.new(1, 0, 0, 42)
@@ -368,9 +457,9 @@ local function slider(text, min, max, def, callback)
     end)
 end
 
-local function button(text, callback)
+local function button(parent, text, callback)
     local btn = Instance.new("TextButton")
-    btn.Parent = content
+    btn.Parent = parent
     btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     btn.BorderSizePixel = 0
     btn.Size = UDim2.new(1, 0, 0, 30)
@@ -392,7 +481,47 @@ local function button(text, callback)
     end)
 end
 
--- ULTIMATE GOD MODE (Fixed)
+-- ANTI-CHEAT BYPASS
+local function enableAntiKick()
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" then
+            warn("[Anti-Kick] Blocked kick attempt")
+            return
+        end
+        return oldNamecall(self, ...)
+    end)
+    
+    setreadonly(mt, true)
+    print("[Anti-Kick] Enabled")
+end
+
+local function enableAntiBan()
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            local name = v.Name:lower()
+            if name:match("ban") or name:match("kick") or name:match("anticheat") then
+                v:Destroy()
+                print("[Anti-Ban] Removed:", v.Name)
+            end
+        end
+    end
+end
+
+local function enableAntiAFK()
+    plr.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        warn("[Anti-AFK] Prevented AFK kick")
+    end)
+    print("[Anti-AFK] Enabled")
+end
+
+-- GOD MODE
 local function enableGod()
     if immortal then return end
     immortal = true
@@ -568,7 +697,172 @@ local function disableGod()
     print("[God] Immortality Deactivated")
 end
 
--- ikaxzu VIP Remove
+-- AUTO FARM RARITY ITEMS
+local function isRareItem(obj)
+    local name = obj.Name:lower()
+    local rarity = nil
+    
+    -- Check name
+    if name:match("divine") then
+        rarity = "Divine"
+    elseif name:match("celestial") then
+        rarity = "Celestial"
+    elseif name:match("infinity") or name:match("infinite") then
+        rarity = "Infinity"
+    end
+    
+    -- Check attributes
+    for _, attr in pairs(obj:GetAttributes()) do
+        local attrStr = tostring(attr):lower()
+        if attrStr:match("divine") then
+            rarity = "Divine"
+        elseif attrStr:match("celestial") then
+            rarity = "Celestial"
+        elseif attrStr:match("infinity") or attrStr:match("infinite") then
+            rarity = "Infinity"
+        end
+    end
+    
+    -- Check children for rarity tags
+    for _, child in pairs(obj:GetChildren()) do
+        if child:IsA("StringValue") or child:IsA("ObjectValue") then
+            local childName = child.Name:lower()
+            local childValue = tostring(child.Value):lower()
+            
+            if childName:match("rarity") or childName:match("tier") or childName:match("rank") then
+                if childValue:match("divine") then
+                    rarity = "Divine"
+                elseif childValue:match("celestial") then
+                    rarity = "Celestial"
+                elseif childValue:match("infinity") or childValue:match("infinite") then
+                    rarity = "Infinity"
+                end
+            end
+        end
+    end
+    
+    return rarity
+end
+
+local function farmItem(item)
+    if not item or not item.Parent then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    pcall(function()
+        local itemPos = item:IsA("Model") and item:GetPrimaryPartCFrame().Position or item.Position
+        
+        -- Teleport to item
+        hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
+        
+        wait(0.1)
+        
+        -- Try to collect
+        if item:FindFirstChild("ClickDetector") then
+            fireclickdetector(item.ClickDetector)
+        elseif item:FindFirstChild("ProximityPrompt") then
+            fireproximityprompt(item.ProximityPrompt)
+        end
+        
+        -- Touch the item
+        if item:IsA("BasePart") then
+            hrp.CFrame = item.CFrame
+            wait(0.1)
+        end
+        
+        -- Fire collect event
+        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") then
+                local name = v.Name:lower()
+                if name:match("collect") or name:match("pickup") or name:match("take") or name:match("grab") then
+                    v:FireServer(item)
+                end
+            end
+        end
+        
+        print("[Farm] Collected:", item.Name, "- Rarity:", isRareItem(item) or "Unknown")
+    end)
+end
+
+local function startAutoFarm()
+    connections.autoFarm = RunService.Heartbeat:Connect(function()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") or obj:IsA("Model") then
+                local rarity = isRareItem(obj)
+                
+                if rarity then
+                    local shouldFarm = false
+                    
+                    if rarity == "Divine" and settings.farmDivine then
+                        shouldFarm = true
+                    elseif rarity == "Celestial" and settings.farmCelestial then
+                        shouldFarm = true
+                    elseif rarity == "Infinity" and settings.farmInfinity then
+                        shouldFarm = true
+                    end
+                    
+                    if shouldFarm and not farmingItems[obj] then
+                        farmingItems[obj] = true
+                        task.spawn(function()
+                            farmItem(obj)
+                            wait(1)
+                            farmingItems[obj] = nil
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+    
+    print("[Farm] Auto Farm Started")
+end
+
+local function stopAutoFarm()
+    if connections.autoFarm then
+        connections.autoFarm:Disconnect()
+        connections.autoFarm = nil
+    end
+    farmingItems = {}
+    print("[Farm] Auto Farm Stopped")
+end
+
+-- AUTO COLLECT
+local function startAutoCollect()
+    connections.autoCollect = RunService.Heartbeat:Connect(function()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                local name = obj.Name:lower()
+                if name:match("coin") or name:match("money") or name:match("cash") or 
+                   name:match("gem") or name:match("crystal") or name:match("orb") or
+                   name:match("item") or name:match("pickup") or name:match("collect") then
+                    
+                    local dist = (obj.Position - hrp.Position).Magnitude
+                    if dist < 100 then
+                        pcall(function()
+                            obj.CFrame = hrp.CFrame
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+    
+    print("[Collect] Auto Collect Started")
+end
+
+local function stopAutoCollect()
+    if connections.autoCollect then
+        connections.autoCollect:Disconnect()
+        connections.autoCollect = nil
+    end
+    print("[Collect] Auto Collect Stopped")
+end
+
+-- VIP REMOVER
 local vipConnection
 local function enableVIPRemove()
     if vipConnection then return end
@@ -576,27 +870,23 @@ local function enableVIPRemove()
     vipConnection = RunService.Heartbeat:Connect(function()
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj:IsA("BasePart") or obj:IsA("Model") then
-                -- Check for VIP/Gamepass objects
                 local name = obj.Name:lower()
                 local hasBadge = obj:FindFirstChild("GamepassRequired") or 
                                  obj:FindFirstChild("VIPOnly") or 
                                  obj:FindFirstChild("PremiumOnly") or
                                  obj:FindFirstChild("BadgeRequired")
                 
-                -- Common VIP object names
                 if name:match("vip") or name:match("premium") or name:match("gamepass") or 
                    name:match("donate") or name:match("robux") or name:match("safe") or
                    name:match("badge") or hasBadge then
                     
                     if not removedObjects[obj] then
                         pcall(function()
-                            -- Make transparent and non-collidable
                             if obj:IsA("BasePart") then
                                 obj.Transparency = 1
                                 obj.CanCollide = false
                                 obj.CanTouch = false
                                 
-                                -- Remove collision
                                 for _, child in pairs(obj:GetDescendants()) do
                                     if child:IsA("BasePart") then
                                         child.Transparency = 1
@@ -605,7 +895,6 @@ local function enableVIPRemove()
                                     end
                                 end
                             elseif obj:IsA("Model") then
-                                -- Hide entire model
                                 for _, part in pairs(obj:GetDescendants()) do
                                     if part:IsA("BasePart") then
                                         part.Transparency = 1
@@ -620,7 +909,6 @@ local function enableVIPRemove()
                             end
                             
                             removedObjects[obj] = true
-                            print("[VIP] Removed:", obj.Name)
                         end)
                     end
                 end
@@ -628,7 +916,7 @@ local function enableVIPRemove()
         end
     end)
     
-    print("[VIP] ikaxzu VIP Remover Enabled")
+    print("[VIP] Remover Enabled")
 end
 
 local function disableVIPRemove()
@@ -637,10 +925,10 @@ local function disableVIPRemove()
         vipConnection = nil
     end
     removedObjects = {}
-    print("[VIP] ikaxzu VIP Remover Disabled")
+    print("[VIP] Remover Disabled")
 end
 
--- Wings Function
+-- WINGS
 local function createWings()
     if wingsModel then return end
     
@@ -651,7 +939,6 @@ local function createWings()
     wingsModel.Name = "AngelWings"
     wingsModel.Parent = char
     
-    -- Left Wing
     local leftWing = Instance.new("Part")
     leftWing.Name = "LeftWing"
     leftWing.Parent = wingsModel
@@ -674,7 +961,6 @@ local function createWings()
     leftWeld.Part1 = leftWing
     leftWeld.C0 = CFrame.new(-1, 0.5, -0.5) * CFrame.Angles(0, math.rad(15), 0)
     
-    -- Right Wing
     local rightWing = Instance.new("Part")
     rightWing.Name = "RightWing"
     rightWing.Parent = wingsModel
@@ -697,7 +983,6 @@ local function createWings()
     rightWeld.Part1 = rightWing
     rightWeld.C0 = CFrame.new(1, 0.5, -0.5) * CFrame.Angles(0, math.rad(-15), 0)
     
-    -- Wing Animation
     connections.wingAnim = RunService.RenderStepped:Connect(function()
         local time = tick()
         local wave = math.sin(time * 3) * 0.2
@@ -706,7 +991,7 @@ local function createWings()
         rightWeld.C0 = CFrame.new(1, 0.5, -0.5) * CFrame.Angles(0, math.rad(-15 - wave * 10), -wave * 0.5)
     end)
     
-    print("[Wings] Angel Wings Equipped")
+    print("[Wings] Equipped")
 end
 
 local function removeWings()
@@ -718,10 +1003,10 @@ local function removeWings()
         connections.wingAnim:Disconnect()
         connections.wingAnim = nil
     end
-    print("[Wings] Angel Wings Removed")
+    print("[Wings] Removed")
 end
 
--- Halo Function
+-- HALO
 local function createHalo()
     if haloModel then return end
     
@@ -751,12 +1036,11 @@ local function createHalo()
     weld.Part1 = haloModel
     weld.C0 = CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.rad(90))
     
-    -- Halo Rotation
     connections.haloAnim = RunService.RenderStepped:Connect(function()
         weld.C0 = weld.C0 * CFrame.Angles(0, math.rad(2), 0)
     end)
     
-    print("[Halo] Angel Halo Equipped")
+    print("[Halo] Equipped")
 end
 
 local function removeHalo()
@@ -768,10 +1052,190 @@ local function removeHalo()
         connections.haloAnim:Disconnect()
         connections.haloAnim = nil
     end
-    print("[Halo] Angel Halo Removed")
+    print("[Halo] Removed")
 end
 
--- ESP Functions
+-- TRAILS
+local function createTrails()
+    for _, part in pairs(char:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            local trail = Instance.new("Trail")
+            trail.Parent = part
+            trail.Attachment0 = Instance.new("Attachment", part)
+            trail.Attachment1 = Instance.new("Attachment", part)
+            trail.Attachment1.Position = Vector3.new(0, 1, 0)
+            trail.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+            trail.Transparency = NumberSequence.new(0.5)
+            trail.Lifetime = 1
+            trail.MinLength = 0
+        end
+    end
+    print("[Trails] Enabled")
+end
+
+local function removeTrails()
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("Trail") then
+            part:Destroy()
+        end
+    end
+    print("[Trails] Removed")
+end
+
+-- RGB CHARACTER
+local function enableRGBChar()
+    connections.rgbChar = RunService.RenderStepped:Connect(function()
+        local hue = tick() % 5 / 5
+        local color = Color3.fromHSV(hue, 1, 1)
+        
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Color = color
+            end
+        end
+    end)
+    print("[RGB] Character Enabled")
+end
+
+local function disableRGBChar()
+    if connections.rgbChar then
+        connections.rgbChar:Disconnect()
+        connections.rgbChar = nil
+    end
+    print("[RGB] Character Disabled")
+end
+
+-- SIZE CHANGER
+local function changeSize(scale)
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local currentSize = hrp.Size
+    local newSize = currentSize * scale / settings.charSize
+    
+    for _, part in pairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Size = part.Size * scale / settings.charSize
+        end
+    end
+    
+    settings.charSize = scale
+    print("[Size] Changed to:", scale)
+end
+
+-- INVISIBLE
+local function enableInvisible()
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+        elseif part:IsA("Decal") then
+            part.Transparency = 1
+        end
+    end
+    print("[Invisible] Enabled")
+end
+
+local function disableInvisible()
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.Transparency = 0
+        elseif part:IsA("Decal") then
+            part.Transparency = 0
+        end
+    end
+    print("[Invisible] Disabled")
+end
+
+-- SPINBOT
+local function enableSpinbot()
+    connections.spinbot = RunService.RenderStepped:Connect(function()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(20), 0)
+        end
+    end)
+    print("[Spinbot] Enabled")
+end
+
+local function disableSpinbot()
+    if connections.spinbot then
+        connections.spinbot:Disconnect()
+        connections.spinbot = nil
+    end
+    print("[Spinbot] Disabled")
+end
+
+-- KILL AURA
+local function enableKillAura()
+    connections.killAura = RunService.Heartbeat:Connect(function()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= plr and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if dist < 20 then
+                    -- Attack logic here
+                    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+                        if v:IsA("RemoteEvent") then
+                            local name = v.Name:lower()
+                            if name:match("attack") or name:match("hit") or name:match("damage") then
+                                v:FireServer(player.Character)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    print("[Kill Aura] Enabled")
+end
+
+local function disableKillAura()
+    if connections.killAura then
+        connections.killAura:Disconnect()
+        connections.killAura = nil
+    end
+    print("[Kill Aura] Disabled")
+end
+
+-- REACH
+local function enableReach()
+    for _, tool in pairs(plr.Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local handle = tool:FindFirstChild("Handle")
+            if handle then
+                handle.Size = Vector3.new(settings.reachdist, settings.reachdist, settings.reachdist)
+                handle.Transparency = 1
+            end
+        end
+    end
+    print("[Reach] Enabled")
+end
+
+-- SILENT AIM
+local function getClosestInFOV()
+    local closest = nil
+    local minDist = settings.aimfov
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                if dist < minDist then
+                    closest = p
+                    minDist = dist
+                end
+            end
+        end
+    end
+    
+    return closest
+end
+
+-- ESP FUNCTIONS
 local function clearESP()
     for _, data in pairs(espData) do
         if data.obj then
@@ -779,6 +1243,15 @@ local function clearESP()
         end
     end
     espData = {}
+end
+
+local function clearItemESP()
+    for _, obj in pairs(itemESP) do
+        if obj then
+            obj:Destroy()
+        end
+    end
+    itemESP = {}
 end
 
 local function createESP(player)
@@ -848,6 +1321,36 @@ local function createESP(player)
     end
 end
 
+local function createItemESP()
+    clearItemESP()
+    
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            local name = obj.Name:lower()
+            local shouldESP = false
+            
+            if settings.espItems and (name:match("item") or name:match("pickup") or name:match("coin")) then
+                shouldESP = true
+            elseif settings.espWeapons and (name:match("weapon") or name:match("gun") or name:match("sword")) then
+                shouldESP = true
+            elseif settings.espVehicles and (name:match("car") or name:match("vehicle")) then
+                shouldESP = true
+            end
+            
+            if shouldESP then
+                local esp = Instance.new("Highlight")
+                esp.Parent = obj:IsA("Model") and obj or obj.Parent
+                esp.FillColor = Color3.fromRGB(255, 255, 0)
+                esp.OutlineColor = Color3.fromRGB(255, 255, 0)
+                esp.FillTransparency = 0.5
+                esp.OutlineTransparency = 0
+                
+                table.insert(itemESP, esp)
+            end
+        end
+    end
+end
+
 local function updateESP()
     for player, data in pairs(espData) do
         if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
@@ -871,91 +1374,81 @@ local function updateESP()
     end
 end
 
--- Aim Functions
-local function getClosestInFOV()
-    local closest = nil
-    local minDist = settings.aimfov
-    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
-    
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                if dist < minDist then
-                    closest = p
-                    minDist = dist
-                end
-            end
-        end
-    end
-    
-    return closest
-end
+-- CREATE TABS
+local combatPage = createTab("Combat")
+local movementPage = createTab("Move")
+local visualPage = createTab("Visual")
+local espPage = createTab("ESP")
+local farmPage = createTab("Farm")
+local miscPage = createTab("Misc")
 
--- Build UI
-label("ESP")
-toggle_option("ESP Enabled", function(v)
-    settings.esp = v
+-- COMBAT TAB
+label(combatPage, "COMBAT")
+toggle_option(combatPage, "God Mode", function(v)
+    settings.god = v
+    if v then enableGod() else disableGod() end
+end)
+
+toggle_option(combatPage, "Auto Aim", function(v)
+    settings.aim = v
     if v then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= plr then
-                createESP(p)
+        connections.aim = RunService.RenderStepped:Connect(function()
+            local target = getClosestInFOV()
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Character.HumanoidRootPart.Position)
             end
-        end
+        end)
     else
-        clearESP()
+        if connections.aim then connections.aim:Disconnect() end
     end
 end)
 
-button("Mode: Simple", function()
-    settings.espMode = 1
-    clearESP()
-    if settings.esp then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= plr then createESP(p) end
-        end
-    end
+toggle_option(combatPage, "Silent Aim", function(v)
+    settings.silentaim = v
 end)
 
-button("Mode: Box", function()
-    settings.espMode = 2
-    clearESP()
-    if settings.esp then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= plr then createESP(p) end
-        end
-    end
+toggle_option(combatPage, "Show FOV", function(v)
+    settings.showfov = v
+    fovCircle.Visible = v
 end)
 
-button("Mode: Highlight", function()
-    settings.espMode = 3
-    clearESP()
-    if settings.esp then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= plr then createESP(p) end
-        end
-    end
+slider(combatPage, "FOV Size", 50, 500, 100, function(v)
+    settings.aimfov = v
 end)
 
-toggle_option("RGB Mode", function(v)
-    settings.espRgb = v
+toggle_option(combatPage, "Spinbot", function(v)
+    settings.spinbot = v
+    if v then enableSpinbot() else disableSpinbot() end
 end)
 
-label("MOVEMENT")
-slider("Speed", 16, 500, 16, function(v)
+toggle_option(combatPage, "Kill Aura", function(v)
+    settings.killaura = v
+    if v then enableKillAura() else disableKillAura() end
+end)
+
+toggle_option(combatPage, "Reach Extender", function(v)
+    settings.reach = v
+    if v then enableReach() end
+end)
+
+slider(combatPage, "Reach Distance", 5, 30, 15, function(v)
+    settings.reachdist = v
+end)
+
+-- MOVEMENT TAB
+label(movementPage, "MOVEMENT")
+slider(movementPage, "Speed", 16, 500, 16, function(v)
     settings.speed = v
 end)
 
-slider("Jump", 50, 500, 50, function(v)
+slider(movementPage, "Jump", 50, 500, 50, function(v)
     settings.jump = v
 end)
 
-local noclipCon
-toggle_option("Noclip", function(v)
+toggle_option(movementPage, "Noclip", function(v)
     settings.noclip = v
     if v then
-        noclipCon = RunService.Stepped:Connect(function()
+        connections.noclip = RunService.Stepped:Connect(function()
             for _, p in pairs(char:GetDescendants()) do
                 if p:IsA("BasePart") then
                     p.CanCollide = false
@@ -963,12 +1456,11 @@ toggle_option("Noclip", function(v)
             end
         end)
     else
-        if noclipCon then noclipCon:Disconnect() end
+        if connections.noclip then connections.noclip:Disconnect() end
     end
 end)
 
-local flyCon
-toggle_option("Fly", function(v)
+toggle_option(movementPage, "Fly", function(v)
     settings.fly = v
     if v then
         local hrp = char.HumanoidRootPart
@@ -977,7 +1469,7 @@ toggle_option("Fly", function(v)
         local bv = Instance.new("BodyVelocity", hrp)
         bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         
-        flyCon = RunService.RenderStepped:Connect(function()
+        connections.fly = RunService.RenderStepped:Connect(function()
             bg.CFrame = cam.CFrame
             local vel = Vector3.new()
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel = vel + cam.CFrame.LookVector * settings.flyspeed end
@@ -989,87 +1481,25 @@ toggle_option("Fly", function(v)
             bv.Velocity = vel
         end)
     else
-        if flyCon then flyCon:Disconnect() end
+        if connections.fly then connections.fly:Disconnect() end
         for _, v in pairs(char.HumanoidRootPart:GetChildren()) do
             if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
         end
     end
 end)
 
-slider("Fly Speed", 10, 200, 50, function(v)
+slider(movementPage, "Fly Speed", 10, 200, 50, function(v)
     settings.flyspeed = v
 end)
 
-label("COMBAT")
-toggle_option("God Mode", function(v)
-    settings.god = v
-    if v then
-        enableGod()
-    else
-        disableGod()
-    end
-end)
-
-local aimCon
-toggle_option("Auto Aim", function(v)
-    settings.aim = v
-    if v then
-        aimCon = RunService.RenderStepped:Connect(function()
-            local target = getClosestInFOV()
-            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Character.HumanoidRootPart.Position)
-            end
-        end)
-    else
-        if aimCon then aimCon:Disconnect() end
-    end
-end)
-
-toggle_option("Show FOV", function(v)
-    settings.showfov = v
-    fovCircle.Visible = v
-end)
-
-slider("FOV Size", 50, 500, 100, function(v)
-    settings.aimfov = v
-end)
-
-label("ikaxzu VIP")
-toggle_option("VIP Object Remover", function(v)
-    settings.vipremove = v
-    if v then
-        enableVIPRemove()
-    else
-        disableVIPRemove()
-    end
-end)
-
-label("COSMETICS")
-toggle_option("Angel Wings", function(v)
-    settings.wings = v
-    if v then
-        createWings()
-    else
-        removeWings()
-    end
-end)
-
-toggle_option("Angel Halo", function(v)
-    settings.halo = v
-    if v then
-        createHalo()
-    else
-        removeHalo()
-    end
-end)
-
-label("VISUAL")
-toggle_option("No Fog", function(v)
+-- VISUAL TAB
+label(visualPage, "VISUAL")
+toggle_option(visualPage, "No Fog", function(v)
     settings.fog = v
     Lighting.FogEnd = v and 100000 or 1000
 end)
 
-toggle_option("Full Bright", function(v)
+toggle_option(visualPage, "Full Bright", function(v)
     settings.bright = v
     if v then
         Lighting.Brightness = 2
@@ -1081,11 +1511,10 @@ toggle_option("Full Bright", function(v)
     end
 end)
 
-local crosshair
-toggle_option("Crosshair", function(v)
+toggle_option(visualPage, "Crosshair", function(v)
     settings.cross = v
     if v then
-        crosshair = Instance.new("ScreenGui", gui)
+        local crosshair = Instance.new("ScreenGui", gui)
         local function line(x, y, w, h)
             local l = Instance.new("Frame", crosshair)
             l.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1098,25 +1527,174 @@ toggle_option("Crosshair", function(v)
         line(0, 8, 1, 6)
         line(-8, 0, 6, 1)
         line(8, 0, 6, 1)
-    else
-        if crosshair then crosshair:Destroy() end
     end
 end)
 
-slider("FOV", 70, 120, 70, function(v)
+slider(visualPage, "FOV", 70, 120, 70, function(v)
     settings.fov = v
     cam.FieldOfView = v
 end)
 
-label("TELEPORT")
-button("TP Closest", function()
+label(visualPage, "COSMETICS")
+toggle_option(visualPage, "Angel Wings", function(v)
+    settings.wings = v
+    if v then createWings() else removeWings() end
+end)
+
+toggle_option(visualPage, "Angel Halo", function(v)
+    settings.halo = v
+    if v then createHalo() else removeHalo() end
+end)
+
+toggle_option(visualPage, "Trails", function(v)
+    settings.trails = v
+    if v then createTrails() else removeTrails() end
+end)
+
+toggle_option(visualPage, "RGB Character", function(v)
+    settings.rgbChar = v
+    if v then enableRGBChar() else disableRGBChar() end
+end)
+
+toggle_option(visualPage, "Invisible", function(v)
+    settings.invisible = v
+    if v then enableInvisible() else disableInvisible() end
+end)
+
+slider(visualPage, "Character Size", 0.5, 3, 1, function(v)
+    changeSize(v)
+end)
+
+-- ESP TAB
+label(espPage, "ESP")
+toggle_option(espPage, "ESP Enabled", function(v)
+    settings.esp = v
+    if v then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
+        end
+    else
+        clearESP()
+    end
+end)
+
+button(espPage, "Mode: Simple", function()
+    settings.espMode = 1
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
+        end
+    end
+end)
+
+button(espPage, "Mode: Box", function()
+    settings.espMode = 2
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
+        end
+    end
+end)
+
+button(espPage, "Mode: Highlight", function()
+    settings.espMode = 3
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
+        end
+    end
+end)
+
+toggle_option(espPage, "RGB Mode", function(v)
+    settings.espRgb = v
+end)
+
+label(espPage, "ITEM ESP")
+toggle_option(espPage, "Item ESP", function(v)
+    settings.espItems = v
+    createItemESP()
+end)
+
+toggle_option(espPage, "Weapon ESP", function(v)
+    settings.espWeapons = v
+    createItemESP()
+end)
+
+toggle_option(espPage, "Vehicle ESP", function(v)
+    settings.espVehicles = v
+    createItemESP()
+end)
+
+-- FARM TAB
+label(farmPage, "AUTO FARM")
+toggle_option(farmPage, "Auto Farm Divine", function(v)
+    settings.farmDivine = v
+    if settings.farmDivine or settings.farmCelestial or settings.farmInfinity then
+        if not settings.autoFarm then
+            settings.autoFarm = true
+            startAutoFarm()
+        end
+    else
+        if settings.autoFarm then
+            settings.autoFarm = false
+            stopAutoFarm()
+        end
+    end
+end)
+
+toggle_option(farmPage, "Auto Farm Celestial", function(v)
+    settings.farmCelestial = v
+    if settings.farmDivine or settings.farmCelestial or settings.farmInfinity then
+        if not settings.autoFarm then
+            settings.autoFarm = true
+            startAutoFarm()
+        end
+    else
+        if settings.autoFarm then
+            settings.autoFarm = false
+            stopAutoFarm()
+        end
+    end
+end)
+
+toggle_option(farmPage, "Auto Farm Infinity", function(v)
+    settings.farmInfinity = v
+    if settings.farmDivine or settings.farmCelestial or settings.farmInfinity then
+        if not settings.autoFarm then
+            settings.autoFarm = true
+            startAutoFarm()
+        end
+    else
+        if settings.autoFarm then
+            settings.autoFarm = false
+            stopAutoFarm()
+        end
+    end
+end)
+
+toggle_option(farmPage, "Auto Collect Items", function(v)
+    settings.autoCollect = v
+    if v then startAutoCollect() else stopAutoCollect() end
+end)
+
+label(farmPage, "ikaxzu VIP")
+toggle_option(farmPage, "VIP Remover", function(v)
+    settings.vipremove = v
+    if v then enableVIPRemove() else disableVIPRemove() end
+end)
+
+label(farmPage, "TELEPORT")
+button(farmPage, "TP Closest Player", function()
     local target = getClosestInFOV()
     if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
         char.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
     end
 end)
 
-button("TP Random", function()
+button(farmPage, "TP Random Player", function()
     local ps = Players:GetPlayers()
     if #ps > 1 then
         local rnd = ps[math.random(1, #ps)]
@@ -1126,12 +1704,51 @@ button("TP Random", function()
     end
 end)
 
--- Events
+-- MISC TAB
+label(miscPage, "PROTECTION")
+toggle_option(miscPage, "Anti Kick", function(v)
+    settings.antiKick = v
+    if v then enableAntiKick() end
+end)
+
+toggle_option(miscPage, "Anti Ban", function(v)
+    settings.antiBan = v
+    if v then enableAntiBan() end
+end)
+
+toggle_option(miscPage, "Anti AFK", function(v)
+    settings.antiAfk = v
+    if v then enableAntiAFK() end
+end)
+
+label(miscPage, "UTILITY")
+button(miscPage, "Rejoin Server", function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, plr)
+end)
+
+button(miscPage, "Server Hop", function()
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    if servers and servers.data then
+        for _, server in pairs(servers.data) do
+            if server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, plr)
+                break
+            end
+        end
+    end
+end)
+
+button(miscPage, "Copy Game ID", function()
+    setclipboard(tostring(game.PlaceId))
+    print("Game ID copied to clipboard")
+end)
+
+-- EVENTS
 toggle.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
     if main.Visible then
         main.Size = UDim2.new(0, 0, 0, 0)
-        TweenService:Create(main, TweenInfo.new(0.25), {Size = UDim2.new(0, 340, 0, 480)}):Play()
+        TweenService:Create(main, TweenInfo.new(0.25), {Size = UDim2.new(0, 450, 0, 520)}):Play()
     end
 end)
 
@@ -1163,9 +1780,7 @@ end)
 Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function()
         task.wait(1)
-        if settings.esp then
-            createESP(p)
-        end
+        if settings.esp then createESP(p) end
     end)
 end)
 
@@ -1173,26 +1788,24 @@ plr.CharacterAdded:Connect(function(c)
     char = c
     task.wait(1)
     
-    if settings.god then
-        enableGod()
-    end
+    if settings.god then enableGod() end
     if settings.noclip then
-        noclipCon = RunService.Stepped:Connect(function()
+        connections.noclip = RunService.Stepped:Connect(function()
             for _, p in pairs(char:GetDescendants()) do
                 if p:IsA("BasePart") then p.CanCollide = false end
             end
         end)
     end
-    if settings.wings then
-        createWings()
-    end
-    if settings.halo then
-        createHalo()
-    end
-    if settings.vipremove then
-        enableVIPRemove()
-    end
+    if settings.wings then createWings() end
+    if settings.halo then createHalo() end
+    if settings.vipremove then enableVIPRemove() end
+    if settings.autoFarm then startAutoFarm() end
+    if settings.autoCollect then startAutoCollect() end
+    if settings.trails then createTrails() end
+    if settings.rgbChar then enableRGBChar() end
+    if settings.invisible then enableInvisible() end
 end)
 
-warn("ikaxzu scripter loaded successfully")
-warn("Features: God Mode, ESP, Aim, VIP Remover, Angel Wings, Halo")
+warn("ikaxzu scripter FULL EDITION loaded")
+warn("All features unlocked!")
+warn("Tabs: Combat | Move | Visual | ESP | Farm | Misc")
