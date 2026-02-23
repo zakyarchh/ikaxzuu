@@ -1,6 +1,7 @@
 --- violence district v3
 -- delta executor
 -- auto save settings
+-- god v2 clone pov system
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -13,6 +14,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local StarterGui = game:GetService("StarterGui")
+local ContextActionService = game:GetService("ContextActionService")
 
 local plr = Players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
@@ -66,7 +69,11 @@ local cfg = {
     noRagdoll = false, infiniteStamina = false,
     antiVoid = false, lowGravity = false,
     xray = false, noParticles = false,
-    godV2 = false
+    godV2 = false,
+    -- God V2 Configuration
+    cloneTransparency = 0.3,
+    transitionSpeed = 2, -- 1=slow, 2=normal, 3=fast
+    anchorOffset = 10
 }
 
 -- Load saved config
@@ -86,7 +93,7 @@ local defaultGravity = 196.2
 local toggleRefs = {}
 
 -- ══════════════════════════════════════════════════════════════
--- GOD V2 - CLONE PROTECTION SYSTEM
+-- GOD V2 - ADVANCED CLONE POV PROTECTION SYSTEM
 -- ══════════════════════════════════════════════════════════════
 
 local GodV2 = {
@@ -94,18 +101,43 @@ local GodV2 = {
     clone = nil,
     originalChar = nil,
     originalHRP = nil,
+    originalHum = nil,
     cloneHRP = nil,
     cloneHum = nil,
     animator = nil,
+    cloneAnimator = nil,
     conns = {},
     lastSafePos = nil,
     walkSpeed = 16,
-    jumpPower = 50
+    jumpPower = 50,
+    isTransitioning = false,
+    animationTracks = {},
+    originalAnimations = {}
 }
 
--- Cleanup function
-function GodV2:cleanup()
-    -- Disconnect semua connections
+-- Get transition duration based on speed setting
+function GodV2:getTransitionDuration()
+    local speeds = {
+        [1] = 0.5,  -- Slow
+        [2] = 0.25, -- Normal
+        [3] = 0.12  -- Fast
+    }
+    return speeds[cfg.transitionSpeed] or 0.25
+end
+
+-- Comprehensive cleanup function
+function GodV2:cleanup(smoothTransition)
+    if self.isTransitioning then return end
+    
+    local transitionDuration = self:getTransitionDuration()
+    
+    -- Stop all animation tracks
+    for _, track in pairs(self.animationTracks) do
+        pcall(function() track:Stop() end)
+    end
+    self.animationTracks = {}
+    
+    -- Disconnect all connections
     for name, c in pairs(self.conns) do
         if c then 
             pcall(function() c:Disconnect() end) 
@@ -113,103 +145,204 @@ function GodV2:cleanup()
     end
     self.conns = {}
     
-    -- Destroy clone dengan aman
-    if self.clone then
-        pcall(function() 
-            self.clone:Destroy() 
-        end)
-        self.clone = nil
-    end
-    
-    -- Restore karakter original
-    if self.originalChar then
-        -- Restore visibility
+    -- Smooth transition back to original character
+    if smoothTransition and self.clone and self.originalChar and self.cloneHRP and self.originalHRP then
+        self.isTransitioning = true
+        
+        local targetCFrame = self.cloneHRP.CFrame
+        
+        -- Unanchor original
+        self.originalHRP.Anchored = false
+        
+        -- Restore original character visibility first (semi-visible during transition)
         for _, part in pairs(self.originalChar:GetDescendants()) do
             if part:IsA("BasePart") then
                 local origTrans = part:GetAttribute("_GodV2_OrigTrans")
-                if origTrans ~= nil then
-                    part.Transparency = origTrans
-                    part:SetAttribute("_GodV2_OrigTrans", nil)
-                elseif part.Name ~= "HumanoidRootPart" then
-                    part.Transparency = 0
+                if part.Name ~= "HumanoidRootPart" then
+                    TweenService:Create(part, TweenInfo.new(transitionDuration * 0.5), {
+                        Transparency = origTrans or 0
+                    }):Play()
                 end
                 part.CanCollide = true
+                part:SetAttribute("_GodV2_OrigTrans", nil)
             end
             if part:IsA("Decal") or part:IsA("Texture") then
                 local origTrans = part:GetAttribute("_GodV2_OrigTrans")
-                if origTrans ~= nil then
-                    part.Transparency = origTrans
-                    part:SetAttribute("_GodV2_OrigTrans", nil)
-                else
-                    part.Transparency = 0
-                end
+                TweenService:Create(part, TweenInfo.new(transitionDuration * 0.5), {
+                    Transparency = origTrans or 0
+                }):Play()
+                part:SetAttribute("_GodV2_OrigTrans", nil)
             end
         end
         
-        -- Unanchor original HRP
-        if self.originalHRP then
-            self.originalHRP.Anchored = false
-            self.originalHRP.CanCollide = true
+        -- Smooth camera transition back
+        if self.originalHum then
+            -- Pre-position camera smoothly
+            local camTween = TweenService:Create(cam, TweenInfo.new(transitionDuration, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                CFrame = CFrame.new(targetCFrame.Position + Vector3.new(0, 2, 8), targetCFrame.Position)
+            })
+            camTween:Play()
         end
         
-        -- Restore camera
-        local hum = self.originalChar:FindFirstChildOfClass("Humanoid")
-        if hum then
-            cam.CameraSubject = hum
+        -- Smooth position transition for original character
+        local startCFrame = self.originalHRP.CFrame
+        local elapsed = 0
+        
+        local transitionConn
+        transitionConn = RunService.Heartbeat:Connect(function(dt)
+            elapsed = elapsed + dt
+            local alpha = math.min(elapsed / transitionDuration, 1)
+            
+            -- Smooth easing
+            local easedAlpha = 1 - math.pow(1 - alpha, 3)
+            
+            -- Interpolate position
+            self.originalHRP.CFrame = startCFrame:Lerp(targetCFrame, easedAlpha)
+            
+            if alpha >= 1 then
+                transitionConn:Disconnect()
+                
+                -- Final position
+                self.originalHRP.CFrame = targetCFrame
+                
+                -- Set camera subject to original humanoid
+                if self.originalHum then
+                    cam.CameraSubject = self.originalHum
+                end
+                
+                -- Fade out and destroy clone
+                if self.clone then
+                    for _, part in pairs(self.clone:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            TweenService:Create(part, TweenInfo.new(transitionDuration * 0.3), {
+                                Transparency = 1
+                            }):Play()
+                        end
+                    end
+                    
+                    task.delay(transitionDuration * 0.4, function()
+                        if self.clone then
+                            self.clone:Destroy()
+                            self.clone = nil
+                        end
+                    end)
+                end
+                
+                self.isTransitioning = false
+            end
+        end)
+        
+        task.wait(transitionDuration + 0.1)
+    else
+        -- Instant cleanup
+        if self.clone then
+            pcall(function() 
+                self.clone:Destroy() 
+            end)
+            self.clone = nil
+        end
+        
+        -- Restore original character
+        if self.originalChar then
+            for _, part in pairs(self.originalChar:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local origTrans = part:GetAttribute("_GodV2_OrigTrans")
+                    if origTrans ~= nil then
+                        part.Transparency = origTrans
+                        part:SetAttribute("_GodV2_OrigTrans", nil)
+                    elseif part.Name ~= "HumanoidRootPart" then
+                        part.Transparency = 0
+                    end
+                    part.CanCollide = true
+                end
+                if part:IsA("Decal") or part:IsA("Texture") then
+                    local origTrans = part:GetAttribute("_GodV2_OrigTrans")
+                    if origTrans ~= nil then
+                        part.Transparency = origTrans
+                        part:SetAttribute("_GodV2_OrigTrans", nil)
+                    else
+                        part.Transparency = 0
+                    end
+                end
+            end
+            
+            if self.originalHRP then
+                self.originalHRP.Anchored = false
+                self.originalHRP.CanCollide = true
+            end
+            
+            if self.originalHum then
+                cam.CameraSubject = self.originalHum
+            end
         end
     end
     
     self.active = false
     self.originalChar = nil
     self.originalHRP = nil
+    self.originalHum = nil
     self.cloneHRP = nil
     self.cloneHum = nil
     self.animator = nil
+    self.cloneAnimator = nil
     self.lastSafePos = nil
 end
 
--- Deep clone character dengan filter
+-- Deep clone character with full detail preservation
 function GodV2:cloneCharacter()
     local original = self.originalChar
     if not original then return nil end
     
     local clone = Instance.new("Model")
-    clone.Name = "ProtectedEntity_" .. math.random(10000, 99999)
+    clone.Name = "PhantomEntity_" .. plr.UserId .. "_" .. math.random(10000, 99999)
     
-    -- Clone semua parts dengan benar
-    local partMap = {} -- Untuk rekonstruksi joints
+    local partMap = {}
     
+    -- Clone all children
     for _, child in pairs(original:GetChildren()) do
-        if child:IsA("BasePart") then
-            local newPart = child:Clone()
-            -- Hapus scripts
-            for _, desc in pairs(newPart:GetDescendants()) do
-                if desc:IsA("Script") or desc:IsA("LocalScript") or desc:IsA("ModuleScript") then
-                    desc:Destroy()
+        pcall(function()
+            if child:IsA("BasePart") then
+                local newPart = child:Clone()
+                -- Remove scripts
+                for _, desc in pairs(newPart:GetDescendants()) do
+                    if desc:IsA("Script") or desc:IsA("LocalScript") or desc:IsA("ModuleScript") then
+                        desc:Destroy()
+                    end
                 end
-            end
-            newPart.Parent = clone
-            partMap[child] = newPart
-            
-        elseif child:IsA("Accessory") then
-            local acc = child:Clone()
-            -- Hapus scripts dari accessory
-            for _, desc in pairs(acc:GetDescendants()) do
-                if desc:IsA("Script") or desc:IsA("LocalScript") or desc:IsA("ModuleScript") then
-                    desc:Destroy()
+                newPart.Parent = clone
+                partMap[child] = newPart
+                
+            elseif child:IsA("Accessory") then
+                local acc = child:Clone()
+                for _, desc in pairs(acc:GetDescendants()) do
+                    if desc:IsA("Script") or desc:IsA("LocalScript") or desc:IsA("ModuleScript") then
+                        desc:Destroy()
+                    end
                 end
+                acc.Parent = clone
+                
+                -- Track accessory parts
+                local handle = acc:FindFirstChild("Handle")
+                if handle and child:FindFirstChild("Handle") then
+                    partMap[child:FindFirstChild("Handle")] = handle
+                end
+                
+            elseif child:IsA("Shirt") or child:IsA("Pants") or child:IsA("ShirtGraphic") then
+                child:Clone().Parent = clone
+                
+            elseif child:IsA("BodyColors") then
+                child:Clone().Parent = clone
+                
+            elseif child:IsA("CharacterMesh") then
+                child:Clone().Parent = clone
+                
+            elseif child.Name == "Animate" then
+                -- Clone animate script for animations
+                local animScript = child:Clone()
+                animScript.Disabled = true -- We'll handle animations manually
+                animScript.Parent = clone
             end
-            acc.Parent = clone
-            
-        elseif child:IsA("Shirt") or child:IsA("Pants") or child:IsA("ShirtGraphic") then
-            child:Clone().Parent = clone
-            
-        elseif child:IsA("BodyColors") then
-            child:Clone().Parent = clone
-            
-        elseif child:IsA("CharacterMesh") then
-            child:Clone().Parent = clone
-        end
+        end)
     end
     
     -- Setup PrimaryPart
@@ -218,40 +351,69 @@ function GodV2:cloneCharacter()
         clone.PrimaryPart = hrp
     end
     
-    return clone
+    return clone, partMap
 end
 
--- Create protected humanoid
+-- Apply ghost transparency to clone
+function GodV2:applyCloneTransparency()
+    if not self.clone then return end
+    
+    local transparency = cfg.cloneTransparency or 0.3
+    
+    for _, part in pairs(self.clone:GetDescendants()) do
+        if part:IsA("BasePart") then
+            if part.Name ~= "HumanoidRootPart" then
+                -- Store original if not stored
+                if not part:GetAttribute("_CloneOrigTrans") then
+                    part:SetAttribute("_CloneOrigTrans", part.Transparency)
+                end
+                
+                local baseTrans = part:GetAttribute("_CloneOrigTrans") or 0
+                part.Transparency = math.max(baseTrans, transparency)
+            end
+        end
+        if part:IsA("Decal") or part:IsA("Texture") then
+            if not part:GetAttribute("_CloneOrigTrans") then
+                part:SetAttribute("_CloneOrigTrans", part.Transparency)
+            end
+            local baseTrans = part:GetAttribute("_CloneOrigTrans") or 0
+            part.Transparency = math.max(baseTrans, transparency * 0.7)
+        end
+    end
+end
+
+-- Create protected humanoid with full state management
 function GodV2:setupProtectedHumanoid()
     if not self.clone then return nil end
     
-    -- Hapus humanoid existing jika ada
+    -- Remove existing humanoid
     local existingHum = self.clone:FindFirstChildOfClass("Humanoid")
     if existingHum then
         existingHum:Destroy()
     end
     
-    -- Buat humanoid baru dengan nama berbeda
+    -- Create new protected humanoid
     local hum = Instance.new("Humanoid")
-    hum.Name = "ProtectedCore" -- Nama berbeda agar tidak terdeteksi
+    hum.Name = "PhantomCore"
     hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
     hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
     hum.NameDisplayDistance = 0
     hum.HealthDisplayDistance = 0
     
-    -- Set health ke infinite
+    -- Infinite health
     hum.MaxHealth = math.huge
     hum.Health = math.huge
     
-    -- Disable death
+    -- Disable death mechanics
     hum.BreakJointsOnDeath = false
     
-    -- Movement settings
+    -- Copy movement settings
     hum.WalkSpeed = self.walkSpeed
     hum.JumpPower = self.jumpPower
     hum.JumpHeight = 7.2
+    hum.HipHeight = self.originalHum and self.originalHum.HipHeight or 2
     
-    -- Disable semua state berbahaya
+    -- Disable dangerous states
     local disableStates = {
         Enum.HumanoidStateType.Dead,
         Enum.HumanoidStateType.Ragdoll,
@@ -283,44 +445,53 @@ function GodV2:setupProtectedHumanoid()
     
     hum.Parent = self.clone
     
-    -- Setup Animator untuk animasi
+    -- Setup Animator
     local animator = Instance.new("Animator")
     animator.Parent = hum
-    self.animator = animator
+    self.cloneAnimator = animator
     
     return hum
 end
 
--- Copy animasi dari original
-function GodV2:copyAnimations()
+-- Setup animation synchronization
+function GodV2:setupAnimations()
     if not self.originalChar or not self.clone then return end
     
-    local origHum = self.originalChar:FindFirstChildOfClass("Humanoid")
+    local origHum = self.originalHum
     local origAnimator = origHum and origHum:FindFirstChildOfClass("Animator")
     
-    if origAnimator and self.animator then
-        -- Copy playing animations
-        for _, track in pairs(origAnimator:GetPlayingAnimationTracks()) do
-            pcall(function()
-                local anim = track.Animation
-                if anim then
-                    local newTrack = self.animator:LoadAnimation(anim)
-                    newTrack:Play()
-                    newTrack.TimePosition = track.TimePosition
-                end
-            end)
-        end
-    end
+    if not origAnimator or not self.cloneAnimator then return end
+    
+    -- Track and sync animations
+    self.conns.animTrack = origAnimator.AnimationPlayed:Connect(function(animTrack)
+        pcall(function()
+            local anim = animTrack.Animation
+            if anim then
+                local cloneTrack = self.cloneAnimator:LoadAnimation(anim)
+                cloneTrack.Priority = animTrack.Priority
+                cloneTrack:Play(animTrack.TimePosition)
+                
+                -- Store for cleanup
+                table.insert(self.animationTracks, cloneTrack)
+                
+                -- Sync stop
+                animTrack.Stopped:Connect(function()
+                    pcall(function() cloneTrack:Stop() end)
+                end)
+            end
+        end)
+    end)
 end
 
--- Activate God V2
+-- Main activation function
 function GodV2:activate()
     -- Prevent duplicate activation
-    if self.active then 
+    if self.active or self.isTransitioning then 
         return false 
     end
     
     -- Validate character
+    char = plr.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then
         return false
     end
@@ -333,6 +504,7 @@ function GodV2:activate()
     -- Store references
     self.originalChar = char
     self.originalHRP = char.HumanoidRootPart
+    self.originalHum = hum
     self.walkSpeed = hum.WalkSpeed
     self.jumpPower = hum.JumpPower
     self.lastSafePos = self.originalHRP.CFrame
@@ -357,9 +529,12 @@ function GodV2:activate()
         return false
     end
     
-    -- Position clone
+    -- Position clone at original position
     self.clone:SetPrimaryPartCFrame(self.originalHRP.CFrame)
     self.clone.Parent = Workspace
+    
+    -- Apply ghost transparency
+    self:applyCloneTransparency()
     
     -- Make original character invisible
     for _, part in pairs(self.originalChar:GetDescendants()) do
@@ -374,17 +549,31 @@ function GodV2:activate()
         end
     end
     
-    -- Anchor original
+    -- Anchor original temporarily
     self.originalHRP.Anchored = true
     
-    -- Set camera to clone
-    cam.CameraSubject = self.cloneHum
+    -- Setup animations
+    self:setupAnimations()
+    
+    -- Smooth camera transition to clone
+    local transitionDuration = self:getTransitionDuration()
+    
+    task.spawn(function()
+        local startSubject = cam.CameraSubject
+        cam.CameraSubject = self.cloneHum
+        
+        -- Smooth camera entry
+        local targetCamPos = self.cloneHRP.CFrame.Position + Vector3.new(0, 3, 10)
+        TweenService:Create(cam, TweenInfo.new(transitionDuration, Enum.EasingStyle.Quart), {
+            CFrame = CFrame.new(targetCamPos, self.cloneHRP.Position)
+        }):Play()
+    end)
     
     -- ═══════════════════════════════════════
-    -- PROTECTION CONNECTIONS
+    -- PROTECTION SYSTEMS
     -- ═══════════════════════════════════════
     
-    -- Health Protection (continuous)
+    -- Continuous health protection
     self.conns.healthProtect = RunService.Heartbeat:Connect(function()
         if self.cloneHum then
             if self.cloneHum.Health ~= math.huge then
@@ -396,12 +585,12 @@ function GodV2:activate()
         end
     end)
     
-    -- Health Changed Protection
+    -- Health change protection
     self.conns.healthChanged = self.cloneHum:GetPropertyChangedSignal("Health"):Connect(function()
         self.cloneHum.Health = math.huge
     end)
     
-    -- State Protection
+    -- State protection
     self.conns.stateProtect = self.cloneHum.StateChanged:Connect(function(old, new)
         if new == Enum.HumanoidStateType.Dead then
             self.cloneHum:ChangeState(Enum.HumanoidStateType.GettingUp)
@@ -409,11 +598,13 @@ function GodV2:activate()
             self.cloneHum:ChangeState(Enum.HumanoidStateType.GettingUp)
         elseif new == Enum.HumanoidStateType.FallingDown then
             self.cloneHum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        elseif new == Enum.HumanoidStateType.Physics then
+            self.cloneHum:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
     end)
     
     -- ═══════════════════════════════════════
-    -- MOVEMENT SYSTEM
+    -- MOVEMENT CONTROL SYSTEM
     -- ═══════════════════════════════════════
     
     self.conns.movement = RunService.RenderStepped:Connect(function()
@@ -429,7 +620,7 @@ function GodV2:activate()
         if camLook.Magnitude > 0.01 then camLook = camLook.Unit else camLook = Vector3.new(0, 0, -1) end
         if camRight.Magnitude > 0.01 then camRight = camRight.Unit else camRight = Vector3.new(1, 0, 0) end
         
-        -- Check input
+        -- Check movement input
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then
             moveDir = moveDir + camLook
         end
@@ -450,7 +641,7 @@ function GodV2:activate()
             self.cloneHum:Move(Vector3.new(0, 0, 0), false)
         end
         
-        -- Sync speed dengan original setting
+        -- Sync speed with settings
         if cfg.speedHack then
             self.cloneHum.WalkSpeed = cfg.speed
         else
@@ -458,7 +649,7 @@ function GodV2:activate()
         end
     end)
     
-    -- Jump Handler
+    -- Jump handler
     self.conns.jump = UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         if not self.active or not self.cloneHum then return end
@@ -472,19 +663,26 @@ function GodV2:activate()
     end)
     
     -- ═══════════════════════════════════════
-    -- ANCHOR SYSTEM (Original follows clone)
+    -- ANCHOR FOLLOW SYSTEM (Original follows Clone)
     -- ═══════════════════════════════════════
     
     self.conns.anchorFollow = RunService.Heartbeat:Connect(function()
         if not self.active then return end
         if not self.cloneHRP or not self.originalHRP then return end
         
-        -- Position original below clone
         local clonePos = self.cloneHRP.Position
-        local targetCFrame = CFrame.new(clonePos.X, clonePos.Y - 8, clonePos.Z)
+        local offset = cfg.anchorOffset or 10
+        
+        -- Position original below clone (horizontal sync, vertical offset)
+        local targetCFrame = CFrame.new(
+            clonePos.X,
+            clonePos.Y - offset,
+            clonePos.Z
+        ) * CFrame.Angles(0, self.cloneHRP.Orientation.Y * math.rad(1), 0)
         
         self.originalHRP.CFrame = targetCFrame
         self.originalHRP.Anchored = true
+        self.originalHRP.Velocity = Vector3.new(0, 0, 0)
         
         -- Update safe position
         if clonePos.Y > -50 then
@@ -505,62 +703,60 @@ function GodV2:activate()
     end)
     
     -- ═══════════════════════════════════════
-    -- TOUCHED PROTECTION (Block damage from touched events)
+    -- KILL BRICK / DAMAGE PROTECTION
     -- ═══════════════════════════════════════
     
     for _, part in pairs(self.clone:GetDescendants()) do
         if part:IsA("BasePart") then
-            -- Tambahkan touched blocker
-            self.conns["touch_" .. part.Name .. math.random(1000, 9999)] = part.Touched:Connect(function(hit)
-                -- Cek jika hit adalah kill brick atau part berbahaya
+            local touchConn = part.Touched:Connect(function(hit)
+                if not self.active then return end
+                
                 local hitName = hit.Name:lower()
                 local isDangerous = hitName:find("kill") or 
                                    hitName:find("lava") or 
                                    hitName:find("death") or
                                    hitName:find("damage") or
                                    hitName:find("void") or
-                                   hitName:find("trap")
+                                   hitName:find("trap") or
+                                   hitName:find("spike") or
+                                   hitName:find("hazard")
                 
                 if isDangerous then
-                    -- Teleport sedikit ke atas untuk menghindari
+                    -- Teleport away from danger
                     if self.cloneHRP and self.lastSafePos then
                         self.clone:SetPrimaryPartCFrame(self.lastSafePos + Vector3.new(0, 3, 0))
                     end
+                    
+                    -- Ensure health is maintained
+                    if self.cloneHum then
+                        self.cloneHum.Health = math.huge
+                    end
                 end
             end)
+            
+            self.conns["touch_" .. part.Name .. "_" .. math.random(10000, 99999)] = touchConn
         end
     end
     
     -- ═══════════════════════════════════════
-    -- ANIMATION SYNC
+    -- CLONE TRANSPARENCY UPDATE
     -- ═══════════════════════════════════════
     
-    self.conns.animSync = RunService.RenderStepped:Connect(function()
-        if not self.active then return end
-        
-        -- Basic animation based on velocity
-        if self.cloneHRP and self.cloneHum then
-            local vel = self.cloneHRP.Velocity
-            local speed = Vector3.new(vel.X, 0, vel.Z).Magnitude
-            
-            -- Humanoid automatically handles basic animation
-            -- Just ensure it's in correct state
-            if speed > 0.5 then
-                if self.cloneHum:GetState() == Enum.HumanoidStateType.Landed then
-                    self.cloneHum:ChangeState(Enum.HumanoidStateType.Running)
-                end
-            end
-        end
+    self.conns.transparencyUpdate = RunService.Heartbeat:Connect(function()
+        if not self.active or not self.clone then return end
+        self:applyCloneTransparency()
     end)
     
     self.active = true
     return true
 end
 
--- Toggle function
+-- Toggle function with smooth transition
 function GodV2:toggle()
+    if self.isTransitioning then return self.active end
+    
     if self.active then
-        self:cleanup()
+        self:cleanup(true) -- Smooth transition off
         cfg.godV2 = false
         return false
     else
@@ -572,22 +768,42 @@ function GodV2:toggle()
     end
 end
 
--- Respawn handler
+-- Force deactivate
+function GodV2:forceDeactivate()
+    self:cleanup(false)
+    cfg.godV2 = false
+end
+
+-- Handle character respawn
 function GodV2:onCharacterAdded(newChar)
+    local wasActive = self.active or cfg.godV2
+    
     if self.active then
-        -- Cleanup old clone
-        self:cleanup()
-        
-        -- Wait for new character to load
-        task.wait(1.5)
-        
-        -- Reactivate if was active
-        if cfg.godV2 then
-            char = newChar
-            self:activate()
-        end
+        self:cleanup(false)
+    end
+    
+    -- Wait for new character to fully load
+    task.wait(1.5)
+    
+    char = newChar
+    
+    -- Reactivate if was active
+    if wasActive and cfg.godV2 then
+        task.wait(0.5)
+        self:activate()
     end
 end
+
+-- Update configuration
+function GodV2:updateConfig()
+    if self.active then
+        self:applyCloneTransparency()
+    end
+end
+
+-- ══════════════════════════════════════════════════════════════
+-- GUI SETUP
+-- ══════════════════════════════════════════════════════════════
 
 local function getParent()
     local s, r = pcall(function() return gethui() end)
@@ -613,7 +829,11 @@ local col = {
     onGlow = Color3.fromRGB(100, 180, 130),
     off = Color3.fromRGB(50, 50, 60),
     danger = Color3.fromRGB(150, 70, 75),
-    warn = Color3.fromRGB(160, 135, 70)
+    warn = Color3.fromRGB(160, 135, 70),
+    -- God V2 specific colors
+    phantom = Color3.fromRGB(100, 120, 160),
+    phantomGlow = Color3.fromRGB(130, 155, 195),
+    phantomDim = Color3.fromRGB(70, 85, 115)
 }
 
 local tweenFast = TweenInfo.new(0.12, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
@@ -692,7 +912,6 @@ end)
 toggleBtn.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
-        -- Save position after drag
         task.spawn(saveSettings)
     end
 end)
@@ -894,7 +1113,8 @@ local function notify(msg, dur, notifType)
     local notifCol = col.accent
     if notifType == "success" then notifCol = col.on
     elseif notifType == "error" then notifCol = col.danger
-    elseif notifType == "warn" then notifCol = col.warn end
+    elseif notifType == "warn" then notifCol = col.warn
+    elseif notifType == "phantom" then notifCol = col.phantom end
 
     local n = Instance.new("Frame", notifContainer)
     n.BackgroundColor3 = col.surface
@@ -921,7 +1141,7 @@ local function notify(msg, dur, notifType)
     icon.Position = UDim2.new(0, 10, 0, 0)
     icon.Size = UDim2.new(0, 20, 1, 0)
     icon.Font = Enum.Font.GothamBold
-    icon.Text = notifType == "success" and "✓" or notifType == "error" and "✕" or notifType == "warn" and "!" or "●"
+    icon.Text = notifType == "success" and "✓" or notifType == "error" and "✕" or notifType == "warn" and "!" or notifType == "phantom" and "◈" or "●"
     icon.TextColor3 = notifCol
     icon.TextSize = 12
 
@@ -970,6 +1190,7 @@ local pages = {}
 local tabButtons = {}
 local activeTab = nil
 
+-- Updated tabs with About
 local tabs = {
     {id = "home", name = "home", icon = "◆"},
     {id = "combat", name = "combat", icon = "⚔"},
@@ -977,6 +1198,7 @@ local tabs = {
     {id = "visual", name = "visuals", icon = "◐"},
     {id = "esp", name = "esp", icon = "◎"},
     {id = "players", name = "players", icon = "♦"},
+    {id = "about", name = "about", icon = "✦"},
 }
 
 local function createPage(id)
@@ -1091,6 +1313,10 @@ for i, tab in ipairs(tabs) do
     end
 end
 
+-- ══════════════════════════════════════════════════════════════
+-- UI COMPONENT FUNCTIONS
+-- ══════════════════════════════════════════════════════════════
+
 local function sectionLabel(parent, text)
     local c = Instance.new("Frame", parent)
     c.BackgroundTransparency = 1
@@ -1204,7 +1430,6 @@ local function createToggle(parent, text, cfgKey, callback)
         TweenService:Create(c, tweenFast, {BackgroundTransparency = 0.3}):Play()
     end)
 
-    -- Initialize visual state
     updateVisual()
 
     local ref = {
@@ -1222,7 +1447,7 @@ local function createToggle(parent, text, cfgKey, callback)
     return ref
 end
 
-local function createSlider(parent, text, min, max, cfgKey, callback)
+local function createSlider(parent, text, min, max, cfgKey, callback, isFloat)
     local val = cfg[cfgKey] or min
     local drag = false
 
@@ -1258,7 +1483,7 @@ local function createSlider(parent, text, min, max, cfgKey, callback)
     v.BackgroundTransparency = 1
     v.Size = UDim2.new(1, 0, 1, 0)
     v.Font = Enum.Font.GothamBold
-    v.Text = tostring(val)
+    v.Text = isFloat and string.format("%.1f", val) or tostring(val)
     v.TextColor3 = col.accent
     v.TextSize = 10
     v.ZIndex = 15
@@ -1289,10 +1514,15 @@ local function createSlider(parent, text, min, max, cfgKey, callback)
 
     local function upd(input)
         local pos = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-        val = math.floor(min + (max - min) * pos)
+        if isFloat then
+            val = min + (max - min) * pos
+            val = math.floor(val * 10) / 10
+        else
+            val = math.floor(min + (max - min) * pos)
+        end
         cfg[cfgKey] = val
         TweenService:Create(fill, tweenFast, {Size = UDim2.new(pos, 0, 1, 0)}):Play()
-        v.Text = tostring(val)
+        v.Text = isFloat and string.format("%.1f", val) or tostring(val)
         pcall(callback, val)
     end
 
@@ -1313,6 +1543,130 @@ local function createSlider(parent, text, min, max, cfgKey, callback)
     UserInputService.InputChanged:Connect(function(input)
         if drag and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             upd(input)
+        end
+    end)
+    
+    return {
+        setValue = function(newVal)
+            val = newVal
+            cfg[cfgKey] = val
+            local pos = (val - min) / (max - min)
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            v.Text = isFloat and string.format("%.1f", val) or tostring(val)
+        end
+    }
+end
+
+local function createDropdown(parent, text, options, cfgKey, callback)
+    local val = cfg[cfgKey] or 1
+    local expanded = false
+    
+    local c = Instance.new("Frame", parent)
+    c.BackgroundColor3 = col.card
+    c.BackgroundTransparency = 0.3
+    c.BorderSizePixel = 0
+    c.Size = UDim2.new(1, 0, 0, 34)
+    c.ClipsDescendants = true
+    c.ZIndex = 13
+
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+    
+    local header = Instance.new("TextButton", c)
+    header.BackgroundTransparency = 1
+    header.Size = UDim2.new(1, 0, 0, 34)
+    header.Text = ""
+    header.ZIndex = 14
+    
+    local l = Instance.new("TextLabel", header)
+    l.BackgroundTransparency = 1
+    l.Position = UDim2.new(0, 14, 0, 0)
+    l.Size = UDim2.new(0.5, 0, 1, 0)
+    l.Font = Enum.Font.GothamMedium
+    l.Text = text
+    l.TextColor3 = col.textMuted
+    l.TextSize = 11
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.ZIndex = 15
+    
+    local selectedLabel = Instance.new("TextLabel", header)
+    selectedLabel.BackgroundTransparency = 1
+    selectedLabel.Position = UDim2.new(0.5, 0, 0, 0)
+    selectedLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    selectedLabel.Font = Enum.Font.GothamMedium
+    selectedLabel.Text = options[val] or "Select"
+    selectedLabel.TextColor3 = col.accent
+    selectedLabel.TextSize = 10
+    selectedLabel.TextXAlignment = Enum.TextXAlignment.Right
+    selectedLabel.ZIndex = 15
+    
+    local arrow = Instance.new("TextLabel", header)
+    arrow.BackgroundTransparency = 1
+    arrow.Position = UDim2.new(1, -24, 0, 0)
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Font = Enum.Font.GothamBold
+    arrow.Text = "▼"
+    arrow.TextColor3 = col.textDim
+    arrow.TextSize = 8
+    arrow.ZIndex = 15
+    
+    local optionContainer = Instance.new("Frame", c)
+    optionContainer.BackgroundTransparency = 1
+    optionContainer.Position = UDim2.new(0, 0, 0, 34)
+    optionContainer.Size = UDim2.new(1, 0, 0, #options * 28)
+    optionContainer.ZIndex = 14
+    
+    local optionLayout = Instance.new("UIListLayout", optionContainer)
+    optionLayout.Padding = UDim.new(0, 2)
+    
+    for i, opt in ipairs(options) do
+        local optBtn = Instance.new("TextButton", optionContainer)
+        optBtn.BackgroundColor3 = col.elevated
+        optBtn.BackgroundTransparency = 0.5
+        optBtn.Size = UDim2.new(1, -10, 0, 26)
+        optBtn.Position = UDim2.new(0, 5, 0, 0)
+        optBtn.Font = Enum.Font.GothamMedium
+        optBtn.Text = opt
+        optBtn.TextColor3 = i == val and col.accent or col.textMuted
+        optBtn.TextSize = 10
+        optBtn.AutoButtonColor = false
+        optBtn.ZIndex = 16
+        Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
+        
+        optBtn.MouseButton1Click:Connect(function()
+            val = i
+            cfg[cfgKey] = val
+            selectedLabel.Text = opt
+            
+            for _, child in pairs(optionContainer:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child.TextColor3 = child.Text == opt and col.accent or col.textMuted
+                end
+            end
+            
+            expanded = false
+            TweenService:Create(c, tweenMed, {Size = UDim2.new(1, 0, 0, 34)}):Play()
+            TweenService:Create(arrow, tweenFast, {Rotation = 0}):Play()
+            
+            pcall(callback, val)
+            task.spawn(saveSettings)
+        end)
+        
+        optBtn.MouseEnter:Connect(function()
+            TweenService:Create(optBtn, tweenFast, {BackgroundTransparency = 0.2}):Play()
+        end)
+        optBtn.MouseLeave:Connect(function()
+            TweenService:Create(optBtn, tweenFast, {BackgroundTransparency = 0.5}):Play()
+        end)
+    end
+    
+    header.MouseButton1Click:Connect(function()
+        expanded = not expanded
+        if expanded then
+            TweenService:Create(c, tweenMed, {Size = UDim2.new(1, 0, 0, 34 + #options * 28 + 10)}):Play()
+            TweenService:Create(arrow, tweenFast, {Rotation = 180}):Play()
+        else
+            TweenService:Create(c, tweenMed, {Size = UDim2.new(1, 0, 0, 34)}):Play()
+            TweenService:Create(arrow, tweenFast, {Rotation = 0}):Play()
         end
     end)
 end
@@ -1369,6 +1723,31 @@ local function createButton(parent, text, callback, icon)
     end)
 
     return b
+end
+
+local function createTextBlock(parent, text, textSize)
+    local c = Instance.new("Frame", parent)
+    c.BackgroundTransparency = 1
+    c.Size = UDim2.new(1, 0, 0, 0)
+    c.AutomaticSize = Enum.AutomaticSize.Y
+    c.ZIndex = 13
+
+    local l = Instance.new("TextLabel", c)
+    l.BackgroundTransparency = 1
+    l.Position = UDim2.new(0, 8, 0, 4)
+    l.Size = UDim2.new(1, -16, 0, 0)
+    l.AutomaticSize = Enum.AutomaticSize.Y
+    l.Font = Enum.Font.Gotham
+    l.Text = text
+    l.TextColor3 = col.textMuted
+    l.TextSize = textSize or 10
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.TextYAlignment = Enum.TextYAlignment.Top
+    l.TextWrapped = true
+    l.RichText = true
+    l.ZIndex = 14
+    
+    return c
 end
 
 -- ══════════════════════════════════════════════════════════════
@@ -1792,82 +2171,119 @@ createToggle(combatPage, "god mode", "god", function(v)
     else disableGod() notify("god mode off", 2) end
 end)
 
-sectionLabel(combatPage, "advanced protection")
+sectionLabel(combatPage, "◈ god v2 — phantom clone system")
 
+-- God V2 Main Card
 local godV2Card = Instance.new("Frame", combatPage)
-godV2Card.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
-godV2Card.BackgroundTransparency = 0.1
+godV2Card.BackgroundColor3 = Color3.fromRGB(22, 25, 32)
+godV2Card.BackgroundTransparency = 0
 godV2Card.BorderSizePixel = 0
-godV2Card.Size = UDim2.new(1, 0, 0, 75)
+godV2Card.Size = UDim2.new(1, 0, 0, 130)
 godV2Card.ZIndex = 13
-Instance.new("UICorner", godV2Card).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", godV2Card).CornerRadius = UDim.new(0, 12)
 
 local godV2Stroke = Instance.new("UIStroke", godV2Card)
-godV2Stroke.Color = Color3.fromRGB(60, 70, 90)
-godV2Stroke.Thickness = 1
-godV2Stroke.Transparency = 0.5
+godV2Stroke.Color = col.phantomDim
+godV2Stroke.Thickness = 1.5
+godV2Stroke.Transparency = 0.4
+
+-- Glow effect
+local godV2Glow = Instance.new("ImageLabel", godV2Card)
+godV2Glow.BackgroundTransparency = 1
+godV2Glow.Size = UDim2.new(1, 40, 1, 40)
+godV2Glow.Position = UDim2.new(0, -20, 0, -20)
+godV2Glow.Image = "rbxassetid://5028857084"
+godV2Glow.ImageColor3 = col.phantom
+godV2Glow.ImageTransparency = 0.95
+godV2Glow.ZIndex = 12
 
 -- Header
 local godV2Header = Instance.new("Frame", godV2Card)
 godV2Header.BackgroundTransparency = 1
-godV2Header.Size = UDim2.new(1, 0, 0, 28)
+godV2Header.Size = UDim2.new(1, 0, 0, 32)
 godV2Header.ZIndex = 14
 
 local godV2Icon = Instance.new("TextLabel", godV2Header)
 godV2Icon.BackgroundTransparency = 1
-godV2Icon.Position = UDim2.new(0, 12, 0, 0)
+godV2Icon.Position = UDim2.new(0, 14, 0, 0)
 godV2Icon.Size = UDim2.new(0, 24, 1, 0)
 godV2Icon.Font = Enum.Font.GothamBold
 godV2Icon.Text = "◈"
-godV2Icon.TextColor3 = Color3.fromRGB(100, 140, 180)
-godV2Icon.TextSize = 14
+godV2Icon.TextColor3 = col.phantom
+godV2Icon.TextSize = 16
 godV2Icon.ZIndex = 15
 
 local godV2Title = Instance.new("TextLabel", godV2Header)
 godV2Title.BackgroundTransparency = 1
-godV2Title.Position = UDim2.new(0, 38, 0, 0)
-godV2Title.Size = UDim2.new(0.5, 0, 1, 0)
+godV2Title.Position = UDim2.new(0, 40, 0, 0)
+godV2Title.Size = UDim2.new(0, 100, 1, 0)
 godV2Title.Font = Enum.Font.GothamBold
 godV2Title.Text = "GOD V2"
 godV2Title.TextColor3 = col.text
-godV2Title.TextSize = 12
+godV2Title.TextSize = 13
 godV2Title.TextXAlignment = Enum.TextXAlignment.Left
 godV2Title.ZIndex = 15
 
-local godV2Badge = Instance.new("Frame", godV2Header)
-godV2Badge.BackgroundColor3 = Color3.fromRGB(70, 100, 140)
-godV2Badge.BackgroundTransparency = 0.7
-godV2Badge.Position = UDim2.new(0, 90, 0.5, -8)
-godV2Badge.Size = UDim2.new(0, 45, 0, 14)
-godV2Badge.ZIndex = 15
-Instance.new("UICorner", godV2Badge).CornerRadius = UDim.new(0, 4)
+-- Badges
+local badgeContainer = Instance.new("Frame", godV2Header)
+badgeContainer.BackgroundTransparency = 1
+badgeContainer.Position = UDim2.new(0, 100, 0.5, -9)
+badgeContainer.Size = UDim2.new(0, 100, 0, 18)
+badgeContainer.ZIndex = 15
 
-local godV2BadgeText = Instance.new("TextLabel", godV2Badge)
-godV2BadgeText.BackgroundTransparency = 1
-godV2BadgeText.Size = UDim2.new(1, 0, 1, 0)
-godV2BadgeText.Font = Enum.Font.GothamBold
-godV2BadgeText.Text = "CLONE"
-godV2BadgeText.TextColor3 = Color3.fromRGB(140, 175, 210)
-godV2BadgeText.TextSize = 8
-godV2BadgeText.ZIndex = 16
+local phantomBadge = Instance.new("Frame", badgeContainer)
+phantomBadge.BackgroundColor3 = col.phantom
+phantomBadge.BackgroundTransparency = 0.8
+phantomBadge.Position = UDim2.new(0, 0, 0, 0)
+phantomBadge.Size = UDim2.new(0, 55, 1, 0)
+phantomBadge.ZIndex = 15
+Instance.new("UICorner", phantomBadge).CornerRadius = UDim.new(0, 4)
+
+local phantomBadgeText = Instance.new("TextLabel", phantomBadge)
+phantomBadgeText.BackgroundTransparency = 1
+phantomBadgeText.Size = UDim2.new(1, 0, 1, 0)
+phantomBadgeText.Font = Enum.Font.GothamBold
+phantomBadgeText.Text = "PHANTOM"
+phantomBadgeText.TextColor3 = col.phantomGlow
+phantomBadgeText.TextSize = 8
+phantomBadgeText.ZIndex = 16
+
+local cloneBadge = Instance.new("Frame", badgeContainer)
+cloneBadge.BackgroundColor3 = col.on
+cloneBadge.BackgroundTransparency = 0.85
+cloneBadge.Position = UDim2.new(0, 60, 0, 0)
+cloneBadge.Size = UDim2.new(0, 40, 1, 0)
+cloneBadge.ZIndex = 15
+Instance.new("UICorner", cloneBadge).CornerRadius = UDim.new(0, 4)
+
+local cloneBadgeText = Instance.new("TextLabel", cloneBadge)
+cloneBadgeText.BackgroundTransparency = 1
+cloneBadgeText.Size = UDim2.new(1, 0, 1, 0)
+cloneBadgeText.Font = Enum.Font.GothamBold
+cloneBadgeText.Text = "CLONE"
+cloneBadgeText.TextColor3 = col.onGlow
+cloneBadgeText.TextSize = 8
+cloneBadgeText.ZIndex = 16
 
 -- Description
 local godV2Desc = Instance.new("TextLabel", godV2Card)
 godV2Desc.BackgroundTransparency = 1
-godV2Desc.Position = UDim2.new(0, 12, 0, 28)
-godV2Desc.Size = UDim2.new(1, -24, 0, 20)
+godV2Desc.Position = UDim2.new(0, 14, 0, 34)
+godV2Desc.Size = UDim2.new(1, -28, 0, 28)
 godV2Desc.Font = Enum.Font.Gotham
-godV2Desc.Text = "clone protection - tidak terpengaruh damage & kill brick"
+godV2Desc.Text = "buat clone transparan sebagai avatar aktif. karakter asli menjadi anchor tersembunyi. tidak terpengaruh damage, kill brick, dan death state."
 godV2Desc.TextColor3 = col.textDim
 godV2Desc.TextSize = 9
 godV2Desc.TextXAlignment = Enum.TextXAlignment.Left
+godV2Desc.TextYAlignment = Enum.TextYAlignment.Top
+godV2Desc.TextWrapped = true
 godV2Desc.ZIndex = 14
 
--- Toggle Switch
+-- Toggle Container
 local godV2ToggleContainer = Instance.new("Frame", godV2Card)
 godV2ToggleContainer.BackgroundTransparency = 1
-godV2ToggleContainer.Position = UDim2.new(1, -58, 0, 8)
-godV2ToggleContainer.Size = UDim2.new(0, 46, 0, 22)
+godV2ToggleContainer.Position = UDim2.new(1, -70, 0, 8)
+godV2ToggleContainer.Size = UDim2.new(0, 56, 0, 26)
 godV2ToggleContainer.ZIndex = 15
 
 local godV2Switch = Instance.new("TextButton", godV2ToggleContainer)
@@ -1879,71 +2295,159 @@ godV2Switch.AutoButtonColor = false
 godV2Switch.ZIndex = 16
 Instance.new("UICorner", godV2Switch).CornerRadius = UDim.new(1, 0)
 
+local godV2SwitchStroke = Instance.new("UIStroke", godV2Switch)
+godV2SwitchStroke.Color = col.border
+godV2SwitchStroke.Thickness = 1
+godV2SwitchStroke.Transparency = 0.5
+
 local godV2Knob = Instance.new("Frame", godV2Switch)
 godV2Knob.AnchorPoint = Vector2.new(0, 0.5)
 godV2Knob.BackgroundColor3 = col.textDim
 godV2Knob.BorderSizePixel = 0
 godV2Knob.Position = UDim2.new(0, 3, 0.5, 0)
-godV2Knob.Size = UDim2.new(0, 16, 0, 16)
+godV2Knob.Size = UDim2.new(0, 20, 0, 20)
 godV2Knob.ZIndex = 17
 Instance.new("UICorner", godV2Knob).CornerRadius = UDim.new(1, 0)
 
-local godV2StatusDot = Instance.new("Frame", godV2Card)
+-- Status Indicator
+local godV2StatusContainer = Instance.new("Frame", godV2Card)
+godV2StatusContainer.BackgroundTransparency = 1
+godV2StatusContainer.Position = UDim2.new(0, 14, 1, -28)
+godV2StatusContainer.Size = UDim2.new(1, -28, 0, 20)
+godV2StatusContainer.ZIndex = 15
+
+local godV2StatusDot = Instance.new("Frame", godV2StatusContainer)
 godV2StatusDot.BackgroundColor3 = col.off
-godV2StatusDot.Position = UDim2.new(0, 12, 1, -18)
-godV2StatusDot.Size = UDim2.new(0, 8, 0, 8)
+godV2StatusDot.Position = UDim2.new(0, 0, 0.5, -5)
+godV2StatusDot.Size = UDim2.new(0, 10, 0, 10)
 godV2StatusDot.ZIndex = 15
 Instance.new("UICorner", godV2StatusDot).CornerRadius = UDim.new(1, 0)
 
-local godV2Status = Instance.new("TextLabel", godV2Card)
+-- Pulse animation for status dot
+local godV2StatusPulse = Instance.new("Frame", godV2StatusDot)
+godV2StatusPulse.BackgroundColor3 = col.off
+godV2StatusPulse.BackgroundTransparency = 0.5
+godV2StatusPulse.Size = UDim2.new(1, 0, 1, 0)
+godV2StatusPulse.Position = UDim2.new(0, 0, 0, 0)
+godV2StatusPulse.ZIndex = 14
+Instance.new("UICorner", godV2StatusPulse).CornerRadius = UDim.new(1, 0)
+
+local godV2Status = Instance.new("TextLabel", godV2StatusContainer)
 godV2Status.BackgroundTransparency = 1
-godV2Status.Position = UDim2.new(0, 26, 1, -20)
-godV2Status.Size = UDim2.new(0.5, 0, 0, 12)
+godV2Status.Position = UDim2.new(0, 18, 0, 0)
+godV2Status.Size = UDim2.new(0.6, 0, 1, 0)
 godV2Status.Font = Enum.Font.GothamMedium
-godV2Status.Text = "tidak aktif"
+godV2Status.Text = "phantom inactive"
 godV2Status.TextColor3 = col.textDim
-godV2Status.TextSize = 9
+godV2Status.TextSize = 10
 godV2Status.TextXAlignment = Enum.TextXAlignment.Left
 godV2Status.ZIndex = 15
 
--- Toggle Logic
+-- Clone Preview Info
+local godV2Preview = Instance.new("TextLabel", godV2StatusContainer)
+godV2Preview.BackgroundTransparency = 1
+godV2Preview.Position = UDim2.new(0.5, 0, 0, 0)
+godV2Preview.Size = UDim2.new(0.5, -10, 1, 0)
+godV2Preview.Font = Enum.Font.Gotham
+godV2Preview.Text = ""
+godV2Preview.TextColor3 = col.textDim
+godV2Preview.TextSize = 9
+godV2Preview.TextXAlignment = Enum.TextXAlignment.Right
+godV2Preview.ZIndex = 15
+
+-- Visual update functions
 local function updateGodV2Visual(active)
     if active then
-        TweenService:Create(godV2Switch, tweenMed, {BackgroundColor3 = Color3.fromRGB(60, 110, 85)}):Play()
+        TweenService:Create(godV2Switch, tweenMed, {BackgroundColor3 = col.phantomDim}):Play()
+        TweenService:Create(godV2SwitchStroke, tweenFast, {Color = col.phantom}):Play()
         TweenService:Create(godV2Knob, tweenBounce, {
-            Position = UDim2.new(1, -19, 0.5, 0),
-            BackgroundColor3 = Color3.fromRGB(100, 180, 130)
+            Position = UDim2.new(1, -23, 0.5, 0),
+            BackgroundColor3 = col.phantomGlow
         }):Play()
-        TweenService:Create(godV2StatusDot, tweenFast, {BackgroundColor3 = Color3.fromRGB(80, 160, 110)}):Play()
-        TweenService:Create(godV2Stroke, tweenFast, {Color = Color3.fromRGB(70, 120, 95)}):Play()
-        godV2Status.Text = "clone aktif"
-        godV2Status.TextColor3 = Color3.fromRGB(100, 180, 130)
+        TweenService:Create(godV2StatusDot, tweenFast, {BackgroundColor3 = col.phantomGlow}):Play()
+        TweenService:Create(godV2StatusPulse, tweenFast, {BackgroundColor3 = col.phantomGlow}):Play()
+        TweenService:Create(godV2Stroke, tweenMed, {Color = col.phantom, Transparency = 0}):Play()
+        TweenService:Create(godV2Glow, tweenSlow, {ImageTransparency = 0.75}):Play()
+        TweenService:Create(godV2Icon, tweenFast, {TextColor3 = col.phantomGlow}):Play()
+        godV2Status.Text = "phantom active"
+        godV2Status.TextColor3 = col.phantomGlow
+        godV2Preview.Text = string.format("transparency: %.1f", cfg.cloneTransparency)
+        
+        -- Start pulse animation
+        task.spawn(function()
+            while cfg.godV2 and GodV2.active do
+                TweenService:Create(godV2StatusPulse, TweenInfo.new(1, Enum.EasingStyle.Sine), {
+                    Size = UDim2.new(2, 0, 2, 0),
+                    Position = UDim2.new(-0.5, 0, -0.5, 0),
+                    BackgroundTransparency = 1
+                }):Play()
+                task.wait(1)
+                godV2StatusPulse.Size = UDim2.new(1, 0, 1, 0)
+                godV2StatusPulse.Position = UDim2.new(0, 0, 0, 0)
+                godV2StatusPulse.BackgroundTransparency = 0.5
+            end
+        end)
     else
         TweenService:Create(godV2Switch, tweenMed, {BackgroundColor3 = col.off}):Play()
+        TweenService:Create(godV2SwitchStroke, tweenFast, {Color = col.border}):Play()
         TweenService:Create(godV2Knob, tweenBounce, {
             Position = UDim2.new(0, 3, 0.5, 0),
             BackgroundColor3 = col.textDim
         }):Play()
         TweenService:Create(godV2StatusDot, tweenFast, {BackgroundColor3 = col.off}):Play()
-        TweenService:Create(godV2Stroke, tweenFast, {Color = Color3.fromRGB(60, 70, 90)}):Play()
-        godV2Status.Text = "tidak aktif"
+        TweenService:Create(godV2StatusPulse, tweenFast, {BackgroundColor3 = col.off}):Play()
+        TweenService:Create(godV2Stroke, tweenMed, {Color = col.phantomDim, Transparency = 0.4}):Play()
+        TweenService:Create(godV2Glow, tweenSlow, {ImageTransparency = 0.95}):Play()
+        TweenService:Create(godV2Icon, tweenFast, {TextColor3 = col.phantom}):Play()
+        godV2Status.Text = "phantom inactive"
         godV2Status.TextColor3 = col.textDim
+        godV2Preview.Text = ""
     end
 end
 
 godV2Switch.MouseButton1Click:Connect(function()
+    if GodV2.isTransitioning then return end
+    
     local result = GodV2:toggle()
     updateGodV2Visual(result)
     task.spawn(saveSettings)
-    notify(result and "god v2 aktif - clone dilindungi" or "god v2 nonaktif", 2.5, result and "success" or "warn")
+    notify(
+        result and "phantom clone activated — you are now protected" or "phantom clone deactivated — returning to normal", 
+        3, 
+        result and "phantom" or "warn"
+    )
 end)
 
 godV2Card.MouseEnter:Connect(function()
     TweenService:Create(godV2Card, tweenFast, {BackgroundTransparency = 0}):Play()
+    TweenService:Create(godV2Stroke, tweenFast, {Transparency = 0}):Play()
 end)
 
 godV2Card.MouseLeave:Connect(function()
-    TweenService:Create(godV2Card, tweenFast, {BackgroundTransparency = 0.1}):Play()
+    if not cfg.godV2 then
+        TweenService:Create(godV2Stroke, tweenFast, {Transparency = 0.4}):Play()
+    end
+end)
+
+-- God V2 Configuration Section
+sectionLabel(combatPage, "phantom configuration")
+
+-- Clone Transparency Slider
+createSlider(combatPage, "clone transparency", 0.1, 0.5, "cloneTransparency", function(v)
+    if GodV2.active then
+        GodV2:updateConfig()
+        godV2Preview.Text = string.format("transparency: %.1f", v)
+    end
+end, true)
+
+-- Transition Speed Dropdown
+createDropdown(combatPage, "transition speed", {"slow", "normal", "fast"}, "transitionSpeed", function(v)
+    -- Just saves the setting
+end)
+
+-- Anchor Offset Slider
+createSlider(combatPage, "anchor offset", 5, 20, "anchorOffset", function(v)
+    -- Applied automatically in the anchor follow system
 end)
 
 sectionLabel(combatPage, "aimbot")
@@ -2268,6 +2772,192 @@ createButton(playersPage, "refresh list", function()
 end, "↻")
 
 -- ══════════════════════════════════════════════════════════════
+-- ABOUT TAB
+-- ══════════════════════════════════════════════════════════════
+local aboutPage = pages["about"]
+
+-- Title Section
+local aboutTitleCard = Instance.new("Frame", aboutPage)
+aboutTitleCard.BackgroundColor3 = col.surface
+aboutTitleCard.BackgroundTransparency = 0.3
+aboutTitleCard.Size = UDim2.new(1, 0, 0, 70)
+aboutTitleCard.ZIndex = 13
+Instance.new("UICorner", aboutTitleCard).CornerRadius = UDim.new(0, 10)
+
+local aboutIcon = Instance.new("TextLabel", aboutTitleCard)
+aboutIcon.BackgroundTransparency = 1
+aboutIcon.Position = UDim2.new(0, 16, 0, 14)
+aboutIcon.Size = UDim2.new(0, 30, 0, 30)
+aboutIcon.Font = Enum.Font.GothamBold
+aboutIcon.Text = "✦"
+aboutIcon.TextColor3 = col.phantom
+aboutIcon.TextSize = 24
+aboutIcon.ZIndex = 14
+
+local aboutTitle = Instance.new("TextLabel", aboutTitleCard)
+aboutTitle.BackgroundTransparency = 1
+aboutTitle.Position = UDim2.new(0, 54, 0, 12)
+aboutTitle.Size = UDim2.new(1, -70, 0, 20)
+aboutTitle.Font = Enum.Font.GothamBold
+aboutTitle.Text = "About"
+aboutTitle.TextColor3 = col.text
+aboutTitle.TextSize = 16
+aboutTitle.TextXAlignment = Enum.TextXAlignment.Left
+aboutTitle.ZIndex = 14
+
+local aboutSubtitle = Instance.new("TextLabel", aboutTitleCard)
+aboutSubtitle.BackgroundTransparency = 1
+aboutSubtitle.Position = UDim2.new(0, 54, 0, 34)
+aboutSubtitle.Size = UDim2.new(1, -70, 0, 14)
+aboutSubtitle.Font = Enum.Font.Gotham
+aboutSubtitle.Text = "the story behind god v2"
+aboutSubtitle.TextColor3 = col.textDim
+aboutSubtitle.TextSize = 10
+aboutSubtitle.TextXAlignment = Enum.TextXAlignment.Left
+aboutSubtitle.ZIndex = 14
+
+-- Spacer
+local spacer1 = Instance.new("Frame", aboutPage)
+spacer1.BackgroundTransparency = 1
+spacer1.Size = UDim2.new(1, 0, 0, 5)
+
+-- About Content
+local aboutContent = [[
+<font color="rgb(145,145,158)">Script ini awalnya tidak dibuat dengan tujuan besar. Tidak ada ambisi untuk membuat sesuatu yang rumit atau kompleks. Semua dimulai dari rasa penasaran kecil tentang bagaimana sistem karakter di roblox bekerja. Tentang bagaimana kamera bisa berpindah, bagaimana clone bisa dibuat stabil tanpa glitch, bagaimana pergerakan bisa terasa lebih halus.</font>
+
+<font color="rgb(145,145,158)">Awalnya hanya eksperimen sederhana. Mengganti CameraSubject, menduplikasi karakter, memahami HumanoidRootPart, mencoba memperbaiki bug kecil yang muncul tanpa diduga. Setiap error yang muncul terasa seperti teka-teki. Setiap solusi kecil memberi rasa puas.</font>
+
+<font color="rgb(225,225,230)">Namun seiring waktu, alasan di balik pengembangan script ini berubah.</font>
+
+<font color="rgb(145,145,158)">Ada fase dalam hidup di mana semuanya terasa berbeda. Seseorang yang dulu selalu ada, perlahan tidak lagi berada di tempat yang sama. Bukan karena pertengkaran besar. Bukan karena drama yang berlebihan. Hanya keadaan yang berubah, jarak yang tercipta, dan waktu yang tidak bisa diputar kembali.</font>
+
+<font color="rgb(100,120,160)">Yang tersisa adalah ruang kosong.</font>
+
+<font color="rgb(145,145,158)">Hal-hal kecil yang dulu terasa biasa, tiba-tiba terasa hilang. Percakapan sederhana. Candaan ringan. Kehadiran yang tidak perlu dijelaskan. Semua itu perlahan menjadi kenangan.</font>
+
+<font color="rgb(145,145,158)">Di masa itu, hari terasa lebih panjang dari biasanya. Malam terasa lebih sunyi. Pikiran sering berjalan sendiri tanpa arah.</font>
+
+<font color="rgb(225,225,230)">Di tengah rasa sepi itulah scripting menjadi tempat bertahan.</font>
+
+<font color="rgb(145,145,158)">Setiap baris kode menjadi cara untuk mengalihkan pikiran. Setiap bug yang berhasil diperbaiki menjadi kemenangan kecil. Setiap sistem yang berhasil berjalan tanpa error memberi rasa bahwa setidaknya masih ada sesuatu yang bisa dikendalikan.</font>
+
+<font color="rgb(130,155,195)">God v2 lahir dari proses itu.</font>
+
+<font color="rgb(145,145,158)">Konsep clone dalam fitur ini bukan sekadar teknis. Clone melambangkan sisi diri yang tetap berjalan, tetap terlihat kuat, tetap bergerak maju di depan orang lain. Versi yang terlihat stabil, tidak goyah, tidak menunjukkan apa pun.</font>
+
+<font color="rgb(145,145,158)">Sementara tubuh asli yang berada di bawah, yang hanya mengikuti tanpa terlihat jelas, melambangkan perasaan yang sebenarnya. Perasaan yang mungkin tidak selalu ditunjukkan. Rasa kehilangan yang tetap ada, tetapi tidak selalu diperlihatkan.</font>
+
+<font color="rgb(100,120,160)">Ketika fitur diaktifkan dan kamera berpindah ke clone, itu seperti fase di mana seseorang mencoba menjadi versi yang lebih kuat dari dirinya sendiri. Berjalan seperti biasa. Terlihat normal. Tetap berfungsi.</font>
+
+<font color="rgb(145,145,158)">Namun tubuh asli tetap ada di bawahnya.</font>
+
+<font color="rgb(225,225,230)">Dan ketika fitur dimatikan, tubuh asli naik kembali ke posisi clone dengan halus. Itu melambangkan proses menerima. Proses kembali menjadi diri sendiri sepenuhnya. Tanpa topeng. Tanpa lapisan tambahan.</font>
+
+<font color="rgb(145,145,158)">Script ini dibuat di malam-malam panjang. Dibuat saat dunia terasa terlalu sunyi. Dibuat saat belajar menjadi cara untuk tetap bergerak maju. Tidak ada niat dramatis. Tidak ada keinginan berlebihan. Hanya proses kecil untuk tetap berdiri.</font>
+
+<font color="rgb(145,145,158)">Setiap detail dalam god v2 — dari transisi kamera yang smooth, transparansi clone yang halus, hingga perpindahan posisi yang tidak kasar — dibuat dengan pemikiran yang tenang. Stabilitas sistem mencerminkan keinginan untuk membuat sesuatu yang tidak mudah runtuh.</font>
+
+<font color="rgb(100,120,160)">Tab About ini bukan untuk mencari simpati. Ini hanya penjelasan jujur bahwa terkadang, dari rasa kehilangan bisa lahir sesuatu yang produktif. Bahwa kesedihan tidak selalu menghentikan langkah. Terkadang, ia hanya mengubah arah.</font>
+
+<font color="rgb(225,225,230)">Dan seperti god v2 yang bisa dinyalakan dan dimatikan dengan stabil, hidup pun memiliki fase. Ada saatnya menjadi kuat di luar. Ada saatnya kembali menjadi diri sendiri dengan tenang.</font>
+
+<font color="rgb(130,155,195)">Script ini adalah pengingat bahwa meskipun sesuatu pergi, bukan berarti semuanya berhenti. Terkadang itu hanya awal dari perjalanan yang berbeda.</font>
+]]
+
+createTextBlock(aboutPage, aboutContent, 10)
+
+-- Separator
+local separator = Instance.new("Frame", aboutPage)
+separator.BackgroundColor3 = col.border
+separator.BackgroundTransparency = 0.7
+separator.Size = UDim2.new(1, -20, 0, 1)
+separator.Position = UDim2.new(0, 10, 0, 0)
+separator.ZIndex = 13
+
+-- Credits Section
+sectionLabel(aboutPage, "credits")
+
+local creditsCard = Instance.new("Frame", aboutPage)
+creditsCard.BackgroundColor3 = col.card
+creditsCard.BackgroundTransparency = 0.3
+creditsCard.Size = UDim2.new(1, 0, 0, 60)
+creditsCard.ZIndex = 13
+Instance.new("UICorner", creditsCard).CornerRadius = UDim.new(0, 8)
+
+local creditsText = Instance.new("TextLabel", creditsCard)
+creditsText.BackgroundTransparency = 1
+creditsText.Position = UDim2.new(0, 14, 0, 10)
+creditsText.Size = UDim2.new(1, -28, 1, -20)
+creditsText.Font = Enum.Font.Gotham
+creditsText.Text = "developed with quiet persistence\nviolence district v3 — god v2 phantom clone system\n© 2024"
+creditsText.TextColor3 = col.textDim
+creditsText.TextSize = 10
+creditsText.TextXAlignment = Enum.TextXAlignment.Center
+creditsText.TextYAlignment = Enum.TextYAlignment.Center
+creditsText.ZIndex = 14
+
+-- Technical Info
+sectionLabel(aboutPage, "technical details")
+
+local techCard = Instance.new("Frame", aboutPage)
+techCard.BackgroundColor3 = col.card
+techCard.BackgroundTransparency = 0.3
+techCard.Size = UDim2.new(1, 0, 0, 90)
+techCard.ZIndex = 13
+Instance.new("UICorner", techCard).CornerRadius = UDim.new(0, 8)
+
+local techInfo = [[
+◈ Clone POV System — kamera dan kontrol berpindah ke clone
+◈ Phantom Protection — immune terhadap damage dan kill brick
+◈ Smooth Transition — perpindahan halus tanpa flicker
+◈ Anchor Sync — karakter asli mengikuti clone secara horizontal
+◈ Animation Sync — animasi clone tersinkronisasi dengan input
+◈ Anti-Void — proteksi otomatis dari jatuh ke void
+]]
+
+local techText = Instance.new("TextLabel", techCard)
+techText.BackgroundTransparency = 1
+techText.Position = UDim2.new(0, 14, 0, 10)
+techText.Size = UDim2.new(1, -28, 1, -20)
+techText.Font = Enum.Font.Gotham
+techText.Text = techInfo
+techText.TextColor3 = col.textMuted
+techText.TextSize = 9
+techText.TextXAlignment = Enum.TextXAlignment.Left
+techText.TextYAlignment = Enum.TextYAlignment.Top
+techText.ZIndex = 14
+
+-- Final Quote
+local quoteCard = Instance.new("Frame", aboutPage)
+quoteCard.BackgroundColor3 = col.phantom
+quoteCard.BackgroundTransparency = 0.9
+quoteCard.Size = UDim2.new(1, 0, 0, 50)
+quoteCard.ZIndex = 13
+Instance.new("UICorner", quoteCard).CornerRadius = UDim.new(0, 8)
+
+local quoteStroke = Instance.new("UIStroke", quoteCard)
+quoteStroke.Color = col.phantomDim
+quoteStroke.Thickness = 1
+quoteStroke.Transparency = 0.5
+
+local quoteText = Instance.new("TextLabel", quoteCard)
+quoteText.BackgroundTransparency = 1
+quoteText.Position = UDim2.new(0, 14, 0, 0)
+quoteText.Size = UDim2.new(1, -28, 1, 0)
+quoteText.Font = Enum.Font.GothamMedium
+quoteText.Text = "\"sometimes the strongest version of yourself is the one you create when no one is watching.\""
+quoteText.TextColor3 = col.phantomGlow
+quoteText.TextSize = 10
+quoteText.TextXAlignment = Enum.TextXAlignment.Center
+quoteText.TextYAlignment = Enum.TextYAlignment.Center
+quoteText.ZIndex = 14
+
+-- End spacer
+local endSpacer = Instance.new("Frame", aboutPage)
+endSpacer.BackgroundTransparency = 1
+endSpacer.Size = UDim2.new(1, 0, 0, 20)
+
+-- ══════════════════════════════════════════════════════════════
 -- MENU ANIMATION
 -- ══════════════════════════════════════════════════════════════
 
@@ -2283,7 +2973,7 @@ local function openMenu()
     mainGlow.ImageTransparency = 1
 
     TweenService:Create(main, tweenBounce, {
-        Size = UDim2.new(0, 480, 0, 320),
+        Size = UDim2.new(0, 480, 0, 340),
         BackgroundTransparency = 0
     }):Play()
     TweenService:Create(mainStroke, tweenMed, {Transparency = 0.3}):Play()
@@ -2307,7 +2997,6 @@ local function closeMenu()
 end
 
 toggleBtn.MouseButton1Click:Connect(function()
-    -- Only toggle if not dragging
     if tick() - lastClick < 0.2 then
         if main.Visible then closeMenu() else openMenu() end
     end
@@ -2321,24 +3010,31 @@ minBtn.MouseButton1Click:Connect(closeMenu)
 -- ══════════════════════════════════════════════════════════════
 
 RunService.RenderStepped:Connect(function()
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum and cfg.speedHack then
-        hum.WalkSpeed = cfg.speed
+    -- Speed hack for normal character (not God V2)
+    if not GodV2.active then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and cfg.speedHack then
+            hum.WalkSpeed = cfg.speed
+        end
     end
 
+    -- FOV Circle
     if cfg.showfov then
         fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
         fovCircle.Radius = cfg.aimfov
     end
 
+    -- Aura Circle
     if cfg.showAura then
         auraCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
         auraCircle.Radius = cfg.auraRange * 4
     end
 
+    -- ESP Update
     if cfg.esp then updateESP() end
 end)
 
+-- Player connections
 Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function()
         task.wait(1)
@@ -2353,6 +3049,7 @@ Players.PlayerRemoving:Connect(function(p)
     if activeTab == "players" then updatePlayerList() end
 end)
 
+-- Character respawn handler
 plr.CharacterAdded:Connect(function(c)
     char = c
     task.wait(1)
@@ -2363,9 +3060,15 @@ plr.CharacterAdded:Connect(function(c)
     -- Handle God V2 reactivation
     GodV2:onCharacterAdded(c)
     
+    -- Update visual if God V2 was active
+    if cfg.godV2 then
+        task.wait(2)
+        updateGodV2Visual(GodV2.active)
+    end
+    
     -- Re-apply saved settings
     for key, ref in pairs(toggleRefs) do
-        if cfg[key] then
+        if cfg[key] and key ~= "godV2" then
             ref.apply()
         end
     end
@@ -2390,10 +3093,11 @@ task.spawn(function()
     
     -- Activate God V2 if saved
     if cfg.godV2 then
-        task.wait(1)
+        task.wait(1.5)
         local result = GodV2:activate()
         if result then
             updateGodV2Visual(true)
+            notify("phantom clone restored from save", 2.5, "phantom")
         end
     end
     
@@ -2410,15 +3114,65 @@ task.spawn(function()
 end)
 
 -- ══════════════════════════════════════════════════════════════
+-- KEYBOARD SHORTCUTS
+-- ══════════════════════════════════════════════════════════════
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- Right Shift to toggle menu
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        if main.Visible then closeMenu() else openMenu() end
+    end
+    
+    -- F4 to toggle God V2 quickly
+    if input.KeyCode == Enum.KeyCode.F4 then
+        if not GodV2.isTransitioning then
+            local result = GodV2:toggle()
+            updateGodV2Visual(result)
+            task.spawn(saveSettings)
+            notify(
+                result and "phantom clone activated" or "phantom clone deactivated", 
+                2, 
+                result and "phantom" or "warn"
+            )
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════════════
 -- CLEANUP ON SCRIPT UNLOAD
 -- ══════════════════════════════════════════════════════════════
 
 gui.Destroying:Connect(function()
-    GodV2:cleanup()
+    -- Cleanup God V2
+    GodV2:cleanup(false)
+    
+    -- Cleanup ESP
     clearESP()
-    fovCircle:Remove()
-    auraCircle:Remove()
+    
+    -- Cleanup Drawing objects
+    pcall(function() fovCircle:Remove() end)
+    pcall(function() auraCircle:Remove() end)
+    
+    -- Disconnect all connections
     for _, c in pairs(conn) do
         if c then pcall(function() c:Disconnect() end) end
     end
+    
+    -- Restore gravity
+    Workspace.Gravity = defaultGravity
 end)
+
+-- ══════════════════════════════════════════════════════════════
+-- FINAL INITIALIZATION MESSAGE
+-- ══════════════════════════════════════════════════════════════
+
+print("═══════════════════════════════════════════")
+print("  Violence District v3 — God V2 Edition")
+print("  Phantom Clone System Initialized")
+print("═══════════════════════════════════════════")
+print("  Hotkeys:")
+print("  • Right Shift — Toggle Menu")
+print("  • F4 — Quick Toggle God V2")
+print("═══════════════════════════════════════════")
