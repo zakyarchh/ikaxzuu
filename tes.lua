@@ -56,7 +56,8 @@ local cfg = {
     esp = false, espMode = 1, espRgb = false,
     speedHack = false, speed = 50,
     noclip = false,
-    god = false, aim = false, aimfov = 100, showfov = false,
+    god = false, godV2 = false, cloneOffset = -15,
+    aim = false, aimfov = 100, showfov = false,
     silentAim = false, silentNoFov = false,
     killaura = false, auraRange = 15, showAura = false,
     hitChance = 100,
@@ -83,6 +84,292 @@ local immortal = false
 local defaultSpeed = 16
 local defaultGravity = 196.2
 local toggleRefs = {}
+
+-- ══════════════════════════════════════════════════════════════
+-- GOD MODE V2 - CLONE SYSTEM
+-- ══════════════════════════════════════════════════════════════
+
+local godV2System = {
+    active = false,
+    clone = nil,
+    realBodyOffset = -15,
+    conn = {},
+    originalData = {}
+}
+
+local function createCloneHitbox(clone)
+    for _, part in pairs(clone:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+end
+
+local function storeOriginalAppearance()
+    godV2System.originalData = {}
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            godV2System.originalData[part] = {
+                transparency = part.Transparency,
+                canCollide = part.CanCollide
+            }
+        elseif part:IsA("Decal") or part:IsA("Texture") then
+            godV2System.originalData[part] = {
+                transparency = part.Transparency
+            }
+        end
+    end
+end
+
+local function hideRealBody()
+    for part, data in pairs(godV2System.originalData) do
+        if part and part.Parent then
+            if part:IsA("BasePart") then
+                if part.Name ~= "HumanoidRootPart" then
+                    part.Transparency = 1
+                end
+                part.CanCollide = false
+            elseif part:IsA("Decal") or part:IsA("Texture") then
+                part.Transparency = 1
+            end
+        end
+    end
+end
+
+local function restoreRealBody()
+    for part, data in pairs(godV2System.originalData) do
+        if part and part.Parent then
+            if part:IsA("BasePart") then
+                part.Transparency = data.transparency
+                part.CanCollide = data.canCollide
+            elseif part:IsA("Decal") or part:IsA("Texture") then
+                part.Transparency = data.transparency
+            end
+        end
+    end
+    godV2System.originalData = {}
+end
+
+local function setupCloneHumanoid(cloneHum)
+    if not cloneHum then return end
+    
+    cloneHum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    cloneHum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+    cloneHum.MaxHealth = math.huge
+    cloneHum.Health = math.huge
+    cloneHum.BreakJointsOnDeath = false
+    
+    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+        pcall(function() 
+            cloneHum:SetStateEnabled(state, false) 
+        end)
+    end
+    
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+    cloneHum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+end
+
+local function enableGodV2()
+    if godV2System.active then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then 
+        notify("karakter tidak valid", 2, "error")
+        return 
+    end
+    
+    godV2System.active = true
+    
+    -- simpan posisi awal
+    local startCF = hrp.CFrame
+    
+    -- buat clone karakter
+    local clone = char:Clone()
+    clone.Name = "Proxy_" .. tostring(plr.UserId) .. "_" .. math.random(1000, 9999)
+    
+    -- bersihkan script dari clone
+    for _, obj in pairs(clone:GetDescendants()) do
+        if obj:IsA("BaseScript") then
+            obj.Enabled = false
+            obj:Destroy()
+        end
+    end
+    
+    clone.Parent = Workspace
+    
+    local cloneHRP = clone:FindFirstChild("HumanoidRootPart")
+    local cloneHum = clone:FindFirstChildOfClass("Humanoid")
+    
+    if not cloneHRP or not cloneHum then
+        clone:Destroy()
+        godV2System.active = false
+        notify("gagal membuat clone", 2, "error")
+        return
+    end
+    
+    -- posisikan clone
+    cloneHRP.CFrame = startCF
+    
+    -- setup clone humanoid
+    setupCloneHumanoid(cloneHum)
+    createCloneHitbox(clone)
+    
+    -- simpan dan sembunyikan tubuh asli
+    storeOriginalAppearance()
+    hideRealBody()
+    
+    -- switch kamera ke clone
+    cam.CameraSubject = cloneHum
+    
+    -- koneksi untuk menjaga clone tetap hidup
+    godV2System.conn.immortal = RunService.Heartbeat:Connect(function()
+        if not clone or not clone.Parent then return end
+        
+        local ch = clone:FindFirstChildOfClass("Humanoid")
+        if ch then
+            if ch.Health ~= math.huge then
+                ch.Health = math.huge
+            end
+            
+            if ch:GetState() == Enum.HumanoidStateType.Dead then
+                ch:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end
+    end)
+    
+    -- koneksi untuk sinkronisasi posisi
+    godV2System.conn.position = RunService.Heartbeat:Connect(function()
+        if not clone or not clone.Parent then
+            if cfg.godV2 then
+                disableGodV2()
+            end
+            return
+        end
+        
+        local realHRP = char:FindFirstChild("HumanoidRootPart")
+        local cloneHRP = clone:FindFirstChild("HumanoidRootPart")
+        
+        if realHRP and cloneHRP then
+            -- tubuh asli mengikuti di bawah clone
+            local clonePos = cloneHRP.Position
+            local cloneRot = cloneHRP.CFrame - cloneHRP.CFrame.Position
+            
+            realHRP.CFrame = CFrame.new(
+                clonePos.X,
+                clonePos.Y + godV2System.realBodyOffset,
+                clonePos.Z
+            ) * cloneRot
+            
+            -- netralkan velocity tubuh asli
+            realHRP.Velocity = Vector3.zero
+            pcall(function()
+                realHRP.AssemblyLinearVelocity = Vector3.zero
+                realHRP.AssemblyAngularVelocity = Vector3.zero
+            end)
+        end
+    end)
+    
+    -- koneksi untuk kontrol pergerakan clone
+    godV2System.conn.movement = RunService.RenderStepped:Connect(function()
+        if not clone or not clone.Parent then return end
+        
+        local cloneHum = clone:FindFirstChildOfClass("Humanoid")
+        local realHum = char:FindFirstChildOfClass("Humanoid")
+        
+        if cloneHum and realHum then
+            -- transfer input pergerakan ke clone
+            cloneHum:Move(realHum.MoveDirection, false)
+            
+            -- sinkronkan kecepatan
+            local targetSpeed = cfg.speedHack and cfg.speed or defaultSpeed
+            cloneHum.WalkSpeed = targetSpeed
+            cloneHum.JumpPower = realHum.JumpPower
+        end
+    end)
+    
+    -- koneksi untuk input lompat
+    godV2System.conn.jump = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.Space then
+            if clone and clone.Parent then
+                local cloneHum = clone:FindFirstChildOfClass("Humanoid")
+                if cloneHum then
+                    cloneHum.Jump = true
+                end
+            end
+        end
+    end)
+    
+    -- handle jika clone dihancurkan secara eksternal
+    godV2System.conn.destroyed = clone.AncestryChanged:Connect(function(_, parent)
+        if not parent and godV2System.active then
+            task.spawn(function()
+                task.wait(0.1)
+                if cfg.godV2 and godV2System.active then
+                    -- recreate clone
+                    disableGodV2()
+                    task.wait(0.2)
+                    enableGodV2()
+                end
+            end)
+        end
+    end)
+    
+    godV2System.clone = clone
+end
+
+local function disableGodV2()
+    if not godV2System.active then return end
+    godV2System.active = false
+    
+    -- putuskan semua koneksi
+    for key, connection in pairs(godV2System.conn) do
+        if connection then
+            pcall(function() connection:Disconnect() end)
+        end
+    end
+    godV2System.conn = {}
+    
+    -- ambil posisi clone sebelum dihancurkan
+    local restorePos = nil
+    if godV2System.clone and godV2System.clone.Parent then
+        local cloneHRP = godV2System.clone:FindFirstChild("HumanoidRootPart")
+        if cloneHRP then
+            restorePos = cloneHRP.CFrame
+        end
+    end
+    
+    -- hancurkan clone
+    if godV2System.clone then
+        pcall(function() 
+            godV2System.clone:Destroy() 
+        end)
+        godV2System.clone = nil
+    end
+    
+    -- kembalikan tampilan tubuh asli
+    restoreRealBody()
+    
+    -- kembalikan kamera
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        cam.CameraSubject = hum
+    end
+    
+    -- kembalikan posisi
+    if restorePos then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = restorePos
+        end
+    end
+end
 
 local function getParent()
     local s, r = pcall(function() return gethui() end)
@@ -1287,6 +1574,28 @@ createToggle(combatPage, "god mode", "god", function(v)
     else disableGod() notify("god mode off", 2) end
 end)
 
+sectionLabel(combatPage, "protection")
+
+createToggle(combatPage, "god mode", "god", function(v)
+    if v then enableGod() notify("god mode on", 2, "success")
+    else disableGod() notify("god mode off", 2) end
+end)
+
+-- TAMBAHKAN INI SETELAH GOD MODE BIASA
+createToggle(combatPage, "god mode v2 (clone)", "godV2", function(v)
+    if v then 
+        enableGodV2() 
+        notify("clone mode aktif", 2, "success")
+    else 
+        disableGodV2() 
+        notify("clone mode nonaktif", 2)
+    end
+end)
+
+createSlider(combatPage, "clone offset (y)", -30, -5, "cloneOffset", function(v)
+    godV2System.realBodyOffset = v
+end)
+
 sectionLabel(combatPage, "aimbot")
 createToggle(combatPage, "auto aim", "aim", function(v)
     if v then
@@ -1700,6 +2009,15 @@ plr.CharacterAdded:Connect(function(c)
     
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then defaultSpeed = hum.WalkSpeed end
+    
+    -- Reset God V2 jika aktif
+    if cfg.godV2 and godV2System.active then
+        godV2System.active = false
+        godV2System.clone = nil
+        godV2System.conn = {}
+        task.wait(0.5)
+        enableGodV2()
+    end
     
     -- Re-apply saved settings
     for key, ref in pairs(toggleRefs) do
