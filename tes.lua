@@ -1,4 +1,4 @@
--- violence district v3
+---- violence district v3
 -- delta executor
 
 local Players = game:GetService("Players")
@@ -18,14 +18,16 @@ local mouse = plr:GetMouse()
 
 local cfg = {
     esp = false, espMode = 1, espRgb = false,
-    speed = 16, jump = 50, noclip = false,
+    speedHack = false, speed = 50,
+    jumpHack = false, jump = 100,
+    noclip = false, fly = false, flySpeed = 50,
     god = false, aim = false, aimfov = 100, showfov = false,
     silentAim = false, silentNoFov = false,
     killaura = false, auraRange = 15, showAura = false,
     hitChance = 100,
-    vip = false, invisible = false,
+    invisible = false,
     fog = false, bright = false, fov = 70, antiAfk = false,
-    selectedPlayer = nil, fly = false, flySpeed = 50
+    selectedPlayer = nil
 }
 
 local conn = {}
@@ -34,6 +36,8 @@ local removedObjects = {}
 local immortal = false
 local flying = false
 local bodyGyro, bodyVel
+local defaultSpeed = 16
+local defaultJump = 50
 
 local function getParent()
     local s, r = pcall(function() return gethui() end)
@@ -61,7 +65,7 @@ local col = {
 }
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "vd_" .. math.random(1000, 9999)
+gui.Name = "vd_v4" .. math.random(1000, 9999)
 gui.Parent = getParent()
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -88,7 +92,7 @@ local toggleIcon = Instance.new("TextLabel", toggleBtn)
 toggleIcon.BackgroundTransparency = 1
 toggleIcon.Size = UDim2.new(1, 0, 1, 0)
 toggleIcon.Font = Enum.Font.GothamBold
-toggleIcon.Text = "≡"
+toggleIcon.Text = "ikaxzu"
 toggleIcon.TextColor3 = col.textMuted
 toggleIcon.TextSize = 18
 
@@ -146,7 +150,7 @@ titleLabel.BackgroundTransparency = 1
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.Size = UDim2.new(0, 120, 1, 0)
 titleLabel.Font = Enum.Font.GothamMedium
-titleLabel.Text = "violence district"
+titleLabel.Text = "ikaxzu premium"
 titleLabel.TextColor3 = col.textMuted
 titleLabel.TextSize = 12
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -469,7 +473,8 @@ local function createToggle(parent, text, callback)
                 k.BackgroundColor3 = col.textDim
                 l.TextColor3 = col.textMuted
             end
-        end
+        end,
+        getState = function() return state end
     }
 end
 
@@ -1574,15 +1579,44 @@ createSlider(combatPage, "aura range (studs)", 10, 30, 15, function(v) cfg.auraR
 createSlider(combatPage, "hit chance %", 50, 100, 100, function(v) cfg.hitChance = v end)
 
 -- ══════════════════════════════════════════════════════════════
--- MOVEMENT TAB
+-- MOVEMENT TAB (REVISI - dengan toggle on/off)
 -- ══════════════════════════════════════════════════════════════
 local movePage = pages["move"]
 
-sectionLabel(movePage, "speed")
-createSlider(movePage, "walk speed", 16, 300, 16, function(v) cfg.speed = v end)
-createSlider(movePage, "jump power", 50, 300, 50, function(v) cfg.jump = v end)
+sectionLabel(movePage, "speed hack")
 
-sectionLabel(movePage, "movement")
+createToggle(movePage, "enable speed hack", function(v)
+    cfg.speedHack = v
+    if v then
+        notify("speed hack enabled")
+    else
+        -- Reset ke default
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = defaultSpeed end
+        notify("speed hack disabled")
+    end
+end)
+
+createSlider(movePage, "walk speed", 16, 300, 50, function(v) cfg.speed = v end)
+
+sectionLabel(movePage, "jump hack")
+
+createToggle(movePage, "enable jump hack", function(v)
+    cfg.jumpHack = v
+    if v then
+        notify("jump hack enabled")
+    else
+        -- Reset ke default
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.JumpPower = defaultJump end
+        notify("jump hack disabled")
+    end
+end)
+
+createSlider(movePage, "jump power", 50, 300, 100, function(v) cfg.jump = v end)
+
+sectionLabel(movePage, "other")
+
 createToggle(movePage, "noclip", function(v)
     cfg.noclip = v
     if v then
@@ -1882,8 +1916,15 @@ end)
 RunService.RenderStepped:Connect(function()
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then
-        hum.WalkSpeed = cfg.speed
-        hum.JumpPower = cfg.jump
+        -- Hanya apply speed jika toggle ON
+        if cfg.speedHack then
+            hum.WalkSpeed = cfg.speed
+        end
+        
+        -- Hanya apply jump jika toggle ON
+        if cfg.jumpHack then
+            hum.JumpPower = cfg.jump
+        end
     end
 
     if cfg.showfov then
@@ -1919,6 +1960,14 @@ end)
 plr.CharacterAdded:Connect(function(c)
     char = c
     task.wait(1)
+    
+    -- Simpan default values
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        defaultSpeed = hum.WalkSpeed
+        defaultJump = hum.JumpPower
+    end
+    
     if cfg.god then enableGod() end
     if cfg.noclip then
         conn.noclip = RunService.Stepped:Connect(function()
@@ -1931,4 +1980,4 @@ plr.CharacterAdded:Connect(function(c)
 end)
 
 task.wait(0.2)
-notify("script loaded successfully")
+notify("script loaded")
