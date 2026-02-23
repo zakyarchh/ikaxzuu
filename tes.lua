@@ -1,10 +1,9 @@
--- Violence District | Clean & Minimal UI
--- Delta X Mobile Optimized
--- Made by Human, Not AI
+-- Violence District -- ikaxzu scripter
+-- Violence District X escape tsunami for brainroot
+-- Delta X Optimized
 
-print("[VD] Loading...")
+warn("Loading ikaxzu scripter...")
 
--- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -12,393 +11,341 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Player
-local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Camera = Workspace.CurrentCamera
-local Mouse = Player:GetMouse()
+local plr = Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local cam = Workspace.CurrentCamera
+local mouse = plr:GetMouse()
 
--- Settings
-local cfg = {
+-- Config
+local settings = {
     esp = false,
     espMode = 1,
-    espRGB = false,
+    espRgb = false,
     speed = 16,
     jump = 50,
     noclip = false,
     fly = false,
     flyspeed = 50,
-    godv1 = false,
-    godv2 = false,
-    godv3 = false,
-    godv4 = false,
-    godv5 = false,
+    god = false,
     aim = false,
-    aimrange = 50,
     aimfov = 100,
-    aimcircle = false,
+    showfov = false,
     fog = false,
     bright = false,
     cross = false,
-    fov = 70
+    fov = 70,
+    vipremove = false,
+    wings = false,
+    halo = false
 }
 
--- God Mode Connections & Protection
-local godConnections = {}
-local protectionParts = {}
+local connections = {}
+local espData = {}
+local oldHealth = 0
+local immortal = false
+local removedObjects = {}
+local wingsModel = nil
+local haloModel = nil
 
--- Parent
-local function GetGui()
-    return (pcall(function() return gethui() end) and gethui()) or CoreGui
+-- Get Parent
+local function getParent()
+    if pcall(function() gethui() end) then
+        return gethui()
+    end
+    return CoreGui
 end
 
--- Create GUI
-local VD = Instance.new("ScreenGui")
-VD.Name = "VD"
-VD.Parent = GetGui()
-VD.ResetOnSpawn = false
-VD.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ikaxzu"
+gui.Parent = getParent()
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.IgnoreGuiInset = true
 
--- Open Button
-local Open = Instance.new("TextButton")
-Open.Name = "Open"
-Open.Parent = VD
-Open.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Open.BorderSizePixel = 0
-Open.Position = UDim2.new(0, 20, 0.5, -25)
-Open.Size = UDim2.new(0, 50, 0, 50)
-Open.Font = Enum.Font.GothamBold
-Open.Text = "VD"
-Open.TextColor3 = Color3.fromRGB(255, 255, 255)
-Open.TextSize = 16
-Open.Active = true
-Open.Draggable = true
+-- Toggle Button
+local toggle = Instance.new("ImageButton")
+toggle.Name = "Toggle"
+toggle.Parent = gui
+toggle.AnchorPoint = Vector2.new(0, 0.5)
+toggle.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+toggle.BorderSizePixel = 0
+toggle.Position = UDim2.new(0, 15, 0.5, 0)
+toggle.Size = UDim2.new(0, 45, 0, 45)
+toggle.Image = "rbxassetid://3926305904"
+toggle.ImageColor3 = Color3.fromRGB(255, 255, 255)
+toggle.ImageRectOffset = Vector2.new(644, 364)
+toggle.ImageRectSize = Vector2.new(36, 36)
+toggle.Active = true
+toggle.Draggable = true
 
-local OpenC = Instance.new("UICorner")
-OpenC.CornerRadius = UDim.new(0, 12)
-OpenC.Parent = Open
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggle
 
--- Main Frame
-local Main = Instance.new("Frame")
-Main.Name = "Main"
-Main.Parent = VD
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Main.BorderSizePixel = 0
-Main.Position = UDim2.new(0.5, 0, 0.5, 0)
-Main.Size = UDim2.new(0, 0, 0, 0)
-Main.ClipsDescendants = true
-Main.Visible = false
-Main.Active = true
-Main.Draggable = true
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Color = Color3.fromRGB(255, 255, 255)
+toggleStroke.Thickness = 1
+toggleStroke.Transparency = 0.8
+toggleStroke.Parent = toggle
 
-local MainC = Instance.new("UICorner")
-MainC.CornerRadius = UDim.new(0, 10)
-MainC.Parent = Main
+-- Main
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Parent = gui
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+main.BorderSizePixel = 0
+main.Position = UDim2.new(0.5, 0, 0.5, 0)
+main.Size = UDim2.new(0, 0, 0, 0)
+main.ClipsDescendants = true
+main.Visible = false
+main.Active = true
+main.Draggable = true
 
--- Top Bar
-local Top = Instance.new("Frame")
-Top.Name = "Top"
-Top.Parent = Main
-Top.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Top.BorderSizePixel = 0
-Top.Size = UDim2.new(1, 0, 0, 40)
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 8)
+mainCorner.Parent = main
 
-local TopC = Instance.new("UICorner")
-TopC.CornerRadius = UDim.new(0, 10)
-TopC.Parent = Top
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(255, 255, 255)
+mainStroke.Thickness = 1
+mainStroke.Transparency = 0.9
+mainStroke.Parent = main
 
-local TopFix = Instance.new("Frame")
-TopFix.Parent = Top
-TopFix.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TopFix.BorderSizePixel = 0
-TopFix.Position = UDim2.new(0, 0, 1, -10)
-TopFix.Size = UDim2.new(1, 0, 0, 10)
+-- Header
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Parent = main
+header.BackgroundTransparency = 1
+header.Size = UDim2.new(1, 0, 0, 35)
 
-local Title = Instance.new("TextLabel")
-Title.Parent = Top
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Size = UDim2.new(0, 150, 1, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "VIOLENCE"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 15
-Title.TextXAlignment = Enum.TextXAlignment.Left
+local title = Instance.new("TextLabel")
+title.Parent = header
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0, 12, 0, 0)
+title.Size = UDim2.new(1, -50, 1, 0)
+title.Font = Enum.Font.GothamBold
+title.Text = "ikaxzu scripter"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 13
+title.TextXAlignment = Enum.TextXAlignment.Left
 
-local Sub = Instance.new("TextLabel")
-Sub.Parent = Top
-Sub.BackgroundTransparency = 1
-Sub.Position = UDim2.new(0, 95, 0, 0)
-Sub.Size = UDim2.new(0, 100, 1, 0)
-Sub.Font = Enum.Font.Gotham
-Sub.Text = "DISTRICT"
-Sub.TextColor3 = Color3.fromRGB(150, 150, 150)
-Sub.TextSize = 15
-Sub.TextXAlignment = Enum.TextXAlignment.Left
+local close = Instance.new("ImageButton")
+close.Name = "Close"
+close.Parent = header
+close.AnchorPoint = Vector2.new(1, 0)
+close.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+close.BorderSizePixel = 0
+close.Position = UDim2.new(1, -8, 0, 8)
+close.Size = UDim2.new(0, 20, 0, 20)
+close.Image = "rbxassetid://3926305904"
+close.ImageColor3 = Color3.fromRGB(255, 255, 255)
+close.ImageRectOffset = Vector2.new(284, 4)
+close.ImageRectSize = Vector2.new(24, 24)
 
-local Close = Instance.new("TextButton")
-Close.Parent = Top
-Close.AnchorPoint = Vector2.new(1, 0)
-Close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-Close.BorderSizePixel = 0
-Close.Position = UDim2.new(1, -10, 0, 10)
-Close.Size = UDim2.new(0, 20, 0, 20)
-Close.Font = Enum.Font.GothamBold
-Close.Text = "X"
-Close.TextColor3 = Color3.fromRGB(255, 255, 255)
-Close.TextSize = 12
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = close
 
-local CloseC = Instance.new("UICorner")
-CloseC.CornerRadius = UDim.new(0, 5)
-CloseC.Parent = Close
-
--- Tabs Container
-local Tabs = Instance.new("Frame")
-Tabs.Name = "Tabs"
-Tabs.Parent = Main
-Tabs.BackgroundTransparency = 1
-Tabs.Position = UDim2.new(0, 0, 0, 40)
-Tabs.Size = UDim2.new(1, 0, 0, 35)
-
-local TabList = Instance.new("UIListLayout")
-TabList.Parent = Tabs
-TabList.FillDirection = Enum.FillDirection.Horizontal
-TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabList.SortOrder = Enum.SortOrder.LayoutOrder
-TabList.Padding = UDim.new(0, 5)
+-- Divider
+local div = Instance.new("Frame")
+div.Parent = main
+div.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+div.BackgroundTransparency = 0.95
+div.BorderSizePixel = 0
+div.Position = UDim2.new(0, 0, 0, 35)
+div.Size = UDim2.new(1, 0, 0, 1)
 
 -- Content
-local Content = Instance.new("Frame")
-Content.Name = "Content"
-Content.Parent = Main
-Content.BackgroundTransparency = 1
-Content.Position = UDim2.new(0, 10, 0, 85)
-Content.Size = UDim2.new(1, -20, 1, -95)
+local content = Instance.new("ScrollingFrame")
+content.Name = "Content"
+content.Parent = main
+content.Active = true
+content.BackgroundTransparency = 1
+content.BorderSizePixel = 0
+content.Position = UDim2.new(0, 8, 0, 43)
+content.Size = UDim2.new(1, -16, 1, -51)
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.ScrollBarThickness = 2
+content.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
+content.ScrollBarImageTransparency = 0.9
 
--- FOV Circle for Aim
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Visible = false
-FOVCircle.Thickness = 2
-FOVCircle.Color = Color3.fromRGB(255, 255, 255)
-FOVCircle.Transparency = 0.8
-FOVCircle.NumSides = 64
-FOVCircle.Filled = false
+local layout = Instance.new("UIListLayout")
+layout.Parent = content
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    content.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 8)
+end)
+
+-- FOV Circle
+local fovCircle = Drawing.new("Circle")
+fovCircle.Visible = false
+fovCircle.Thickness = 1
+fovCircle.Color = Color3.fromRGB(255, 255, 255)
+fovCircle.Transparency = 1
+fovCircle.NumSides = 64
+fovCircle.Filled = false
 
 -- Functions
-local currentTab = nil
-
-local function Tab(name)
-    local TabBtn = Instance.new("TextButton")
-    TabBtn.Name = name
-    TabBtn.Parent = Tabs
-    TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    TabBtn.BorderSizePixel = 0
-    TabBtn.Size = UDim2.new(0, 80, 1, 0)
-    TabBtn.AutoButtonColor = false
-    TabBtn.Font = Enum.Font.Gotham
-    TabBtn.Text = name
-    TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-    TabBtn.TextSize = 12
-    
-    local TabC = Instance.new("UICorner")
-    TabC.CornerRadius = UDim.new(0, 6)
-    TabC.Parent = TabBtn
-    
-    local Page = Instance.new("ScrollingFrame")
-    Page.Name = name
-    Page.Parent = Content
-    Page.Active = true
-    Page.BackgroundTransparency = 1
-    Page.BorderSizePixel = 0
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Page.ScrollBarThickness = 2
-    Page.ScrollBarImageColor3 = Color3.fromRGB(60, 60, 60)
-    Page.Visible = false
-    
-    local PageList = Instance.new("UIListLayout")
-    PageList.Parent = Page
-    PageList.SortOrder = Enum.SortOrder.LayoutOrder
-    PageList.Padding = UDim.new(0, 8)
-    
-    PageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Page.CanvasSize = UDim2.new(0, 0, 0, PageList.AbsoluteContentSize.Y + 5)
-    end)
-    
-    TabBtn.MouseButton1Click:Connect(function()
-        for _, v in pairs(Tabs:GetChildren()) do
-            if v:IsA("TextButton") then
-                v.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                v.TextColor3 = Color3.fromRGB(150, 150, 150)
-            end
-        end
-        for _, v in pairs(Content:GetChildren()) do
-            if v:IsA("ScrollingFrame") then
-                v.Visible = false
-            end
-        end
-        
-        TabBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Page.Visible = true
-        currentTab = name
-    end)
-    
-    if not currentTab then
-        TabBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Page.Visible = true
-        currentTab = name
-    end
-    
-    return Page
+local function label(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = content
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextTransparency = 0.4
 end
 
-local function Toggle(parent, text, callback)
-    local on = false
+local function toggle_option(text, callback)
+    local state = false
     
-    local Btn = Instance.new("TextButton")
-    Btn.Parent = parent
-    Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Btn.BorderSizePixel = 0
-    Btn.Size = UDim2.new(1, 0, 0, 35)
-    Btn.AutoButtonColor = false
-    Btn.Font = Enum.Font.Gotham
-    Btn.Text = ""
-    Btn.TextSize = 1
+    local frame = Instance.new("TextButton")
+    frame.Parent = content
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BorderSizePixel = 0
+    frame.Size = UDim2.new(1, 0, 0, 30)
+    frame.AutoButtonColor = false
+    frame.Text = ""
     
-    local BtnC = Instance.new("UICorner")
-    BtnC.CornerRadius = UDim.new(0, 6)
-    BtnC.Parent = Btn
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
     
-    local Label = Instance.new("TextLabel")
-    Label.Parent = Btn
-    Label.BackgroundTransparency = 1
-    Label.Position = UDim2.new(0, 12, 0, 0)
-    Label.Size = UDim2.new(1, -50, 1, 0)
-    Label.Font = Enum.Font.Gotham
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Label.TextSize = 13
-    Label.TextXAlignment = Enum.TextXAlignment.Left
+    local txt = Instance.new("TextLabel")
+    txt.Parent = frame
+    txt.BackgroundTransparency = 1
+    txt.Position = UDim2.new(0, 10, 0, 0)
+    txt.Size = UDim2.new(1, -45, 1, 0)
+    txt.Font = Enum.Font.Gotham
+    txt.Text = text
+    txt.TextColor3 = Color3.fromRGB(200, 200, 200)
+    txt.TextSize = 11
+    txt.TextXAlignment = Enum.TextXAlignment.Left
     
-    local Switch = Instance.new("Frame")
-    Switch.Parent = Btn
-    Switch.AnchorPoint = Vector2.new(1, 0.5)
-    Switch.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    Switch.BorderSizePixel = 0
-    Switch.Position = UDim2.new(1, -10, 0.5, 0)
-    Switch.Size = UDim2.new(0, 35, 0, 18)
+    local indicator = Instance.new("Frame")
+    indicator.Parent = frame
+    indicator.AnchorPoint = Vector2.new(1, 0.5)
+    indicator.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    indicator.BorderSizePixel = 0
+    indicator.Position = UDim2.new(1, -8, 0.5, 0)
+    indicator.Size = UDim2.new(0, 30, 0, 16)
     
-    local SwitchC = Instance.new("UICorner")
-    SwitchC.CornerRadius = UDim.new(1, 0)
-    SwitchC.Parent = Switch
+    local indCorner = Instance.new("UICorner")
+    indCorner.CornerRadius = UDim.new(1, 0)
+    indCorner.Parent = indicator
     
-    local Circle = Instance.new("Frame")
-    Circle.Parent = Switch
-    Circle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    Circle.BorderSizePixel = 0
-    Circle.Position = UDim2.new(0, 2, 0.5, 0)
-    Circle.AnchorPoint = Vector2.new(0, 0.5)
-    Circle.Size = UDim2.new(0, 14, 0, 14)
+    local dot = Instance.new("Frame")
+    dot.Parent = indicator
+    dot.AnchorPoint = Vector2.new(0, 0.5)
+    dot.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    dot.BorderSizePixel = 0
+    dot.Position = UDim2.new(0, 2, 0.5, 0)
+    dot.Size = UDim2.new(0, 12, 0, 12)
     
-    local CircleC = Instance.new("UICorner")
-    CircleC.CornerRadius = UDim.new(1, 0)
-    CircleC.Parent = Circle
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
     
-    Btn.MouseButton1Click:Connect(function()
-        on = not on
+    frame.MouseButton1Click:Connect(function()
+        state = not state
         
-        if on then
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -16, 0.5, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
-            TweenService:Create(Label, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        if state then
+            TweenService:Create(dot, TweenInfo.new(0.15), {Position = UDim2.new(1, -14, 0.5, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            TweenService:Create(indicator, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+            TweenService:Create(txt, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         else
-            TweenService:Create(Circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 2, 0.5, 0), BackgroundColor3 = Color3.fromRGB(80, 80, 80)}):Play()
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
-            TweenService:Create(Label, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            TweenService:Create(dot, TweenInfo.new(0.15), {Position = UDim2.new(0, 2, 0.5, 0), BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+            TweenService:Create(indicator, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+            TweenService:Create(txt, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
         end
         
-        pcall(callback, on)
+        pcall(callback, state)
     end)
+    
+    return frame
 end
 
-local function Slider(parent, text, min, max, def, callback)
+local function slider(text, min, max, def, callback)
     local val = def
     local dragging = false
     
-    local Frame = Instance.new("Frame")
-    Frame.Parent = parent
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Frame.BorderSizePixel = 0
-    Frame.Size = UDim2.new(1, 0, 0, 50)
+    local frame = Instance.new("Frame")
+    frame.Parent = content
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BorderSizePixel = 0
+    frame.Size = UDim2.new(1, 0, 0, 42)
     
-    local FrameC = Instance.new("UICorner")
-    FrameC.CornerRadius = UDim.new(0, 6)
-    FrameC.Parent = Frame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
     
-    local Label = Instance.new("TextLabel")
-    Label.Parent = Frame
-    Label.BackgroundTransparency = 1
-    Label.Position = UDim2.new(0, 12, 0, 5)
-    Label.Size = UDim2.new(1, -24, 0, 15)
-    Label.Font = Enum.Font.Gotham
-    Label.Text = text
-    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Label.TextSize = 13
-    Label.TextXAlignment = Enum.TextXAlignment.Left
+    local txt = Instance.new("TextLabel")
+    txt.Parent = frame
+    txt.BackgroundTransparency = 1
+    txt.Position = UDim2.new(0, 10, 0, 4)
+    txt.Size = UDim2.new(0.7, 0, 0, 14)
+    txt.Font = Enum.Font.Gotham
+    txt.Text = text
+    txt.TextColor3 = Color3.fromRGB(200, 200, 200)
+    txt.TextSize = 11
+    txt.TextXAlignment = Enum.TextXAlignment.Left
     
-    local Value = Instance.new("TextLabel")
-    Value.Parent = Frame
-    Value.BackgroundTransparency = 1
-    Value.Position = UDim2.new(0, 12, 0, 5)
-    Value.Size = UDim2.new(1, -24, 0, 15)
-    Value.Font = Enum.Font.GothamBold
-    Value.Text = tostring(def)
-    Value.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Value.TextSize = 13
-    Value.TextXAlignment = Enum.TextXAlignment.Right
+    local value = Instance.new("TextLabel")
+    value.Parent = frame
+    value.BackgroundTransparency = 1
+    value.Position = UDim2.new(0, 10, 0, 4)
+    value.Size = UDim2.new(1, -20, 0, 14)
+    value.Font = Enum.Font.GothamBold
+    value.Text = tostring(def)
+    value.TextColor3 = Color3.fromRGB(255, 255, 255)
+    value.TextSize = 11
+    value.TextXAlignment = Enum.TextXAlignment.Right
     
-    local SliderBack = Instance.new("Frame")
-    SliderBack.Parent = Frame
-    SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    SliderBack.BorderSizePixel = 0
-    SliderBack.Position = UDim2.new(0, 12, 0, 28)
-    SliderBack.Size = UDim2.new(1, -24, 0, 12)
+    local track = Instance.new("Frame")
+    track.Parent = frame
+    track.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    track.BorderSizePixel = 0
+    track.Position = UDim2.new(0, 10, 0, 24)
+    track.Size = UDim2.new(1, -20, 0, 10)
     
-    local SliderBackC = Instance.new("UICorner")
-    SliderBackC.CornerRadius = UDim.new(1, 0)
-    SliderBackC.Parent = SliderBack
+    local trackCorner = Instance.new("UICorner")
+    trackCorner.CornerRadius = UDim.new(1, 0)
+    trackCorner.Parent = track
     
-    local SliderFill = Instance.new("Frame")
-    SliderFill.Parent = SliderBack
-    SliderFill.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    SliderFill.BorderSizePixel = 0
-    SliderFill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
+    local fill = Instance.new("Frame")
+    fill.Parent = track
+    fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    fill.BorderSizePixel = 0
+    fill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
     
-    local SliderFillC = Instance.new("UICorner")
-    SliderFillC.CornerRadius = UDim.new(1, 0)
-    SliderFillC.Parent = SliderFill
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
     
-    local SliderBtn = Instance.new("TextButton")
-    SliderBtn.Parent = SliderBack
-    SliderBtn.BackgroundTransparency = 1
-    SliderBtn.Size = UDim2.new(1, 0, 1, 0)
-    SliderBtn.Text = ""
+    local btn = Instance.new("TextButton")
+    btn.Parent = track
+    btn.BackgroundTransparency = 1
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.Text = ""
     
     local function update(input)
-        local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+        local pos = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
         val = math.floor(min + (max - min) * pos)
-        
-        SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-        Value.Text = tostring(val)
-        
+        fill.Size = UDim2.new(pos, 0, 1, 0)
+        value.Text = tostring(val)
         pcall(callback, val)
     end
     
-    SliderBtn.MouseButton1Down:Connect(function()
+    btn.MouseButton1Down:Connect(function()
         dragging = true
     end)
     
@@ -408,7 +355,7 @@ local function Slider(parent, text, min, max, def, callback)
         end
     end)
     
-    SliderBtn.InputBegan:Connect(function(input)
+    btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             update(input)
         end
@@ -421,636 +368,523 @@ local function Slider(parent, text, min, max, def, callback)
     end)
 end
 
-local function Btn(parent, text, callback)
-    local Button = Instance.new("TextButton")
-    Button.Parent = parent
-    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    Button.BorderSizePixel = 0
-    Button.Size = UDim2.new(1, 0, 0, 35)
-    Button.AutoButtonColor = false
-    Button.Font = Enum.Font.GothamBold
-    Button.Text = text
-    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 13
+local function button(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Parent = content
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    btn.BorderSizePixel = 0
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.AutoButtonColor = false
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 11
     
-    local ButtonC = Instance.new("UICorner")
-    ButtonC.CornerRadius = UDim.new(0, 6)
-    ButtonC.Parent = Button
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = btn
     
-    Button.MouseButton1Click:Connect(function()
-        TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+    btn.MouseButton1Click:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
         wait(0.1)
-        TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
         pcall(callback)
     end)
 end
 
--- God Mode Functions
-local function StopAllGod()
-    for name, conn in pairs(godConnections) do
-        if conn then
-            pcall(function()
-                if typeof(conn) == "RBXScriptConnection" then
-                    conn:Disconnect()
-                end
-            end)
-        end
-        godConnections[name] = nil
+-- ULTIMATE GOD MODE (Fixed)
+local function enableGod()
+    if immortal then return end
+    immortal = true
+    
+    local hum = char:FindFirstChild("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    
+    oldHealth = hum.Health
+    
+    pcall(function()
+        hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    end)
+    
+    local fakeHum = Instance.new("Humanoid", char)
+    fakeHum.Name = "FakeHumanoid"
+    fakeHum.Health = 100
+    fakeHum.MaxHealth = 100
+    hum.Name = "RealHumanoid"
+    hum.BreakJointsOnDeath = false
+    
+    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+        pcall(function()
+            hum:SetStateEnabled(state, false)
+        end)
     end
+    hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+    hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
     
-    -- Remove protection parts
-    for _, part in pairs(protectionParts) do
-        if part and part.Parent then
-            part:Destroy()
-        end
-    end
-    protectionParts = {}
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    if hum then
-        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
-    end
-    
-    -- Remove force fields
-    for _, v in pairs(Character:GetChildren()) do
-        if v:IsA("ForceField") then
-            v:Destroy()
-        end
-    end
-    
-    print("[VD] All God Modes Disabled")
-end
-
-local function GodV1(enabled)
-    if not enabled then
-        if godConnections.GodV1 then
-            godConnections.GodV1:Disconnect()
-            godConnections.GodV1 = nil
-        end
-        print("[VD] God V1 Disabled")
-        return
-    end
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    if not hum then return end
-    
-    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
     hum.MaxHealth = math.huge
     hum.Health = math.huge
     
-    godConnections.GodV1 = hum.HealthChanged:Connect(function()
-        if hum.Health < math.huge then
-            hum.Health = math.huge
-        end
-    end)
-    
-    print("[VD] God V1 Enabled - Health Regen")
-end
-
-local function GodV2(enabled)
-    if not enabled then
-        if godConnections.GodV2 then
-            godConnections.GodV2:Disconnect()
-            godConnections.GodV2 = nil
-        end
-        print("[VD] God V2 Disabled")
-        return
-    end
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    if not hum then return end
-    
-    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    
-    godConnections.GodV2 = hum.Died:Connect(function()
-        local newHum = hum:Clone()
-        hum:Destroy()
-        newHum.Parent = Character
-        newHum.Health = newHum.MaxHealth
-    end)
-    
-    print("[VD] God V2 Enabled - Humanoid Replace")
-end
-
-local function GodV3(enabled)
-    if not enabled then
-        if godConnections.GodV3 then
-            godConnections.GodV3:Disconnect()
-            godConnections.GodV3 = nil
-        end
-        if godConnections.GodV3Touched then
-            godConnections.GodV3Touched:Disconnect()
-            godConnections.GodV3Touched = nil
-        end
-        for _, v in pairs(Character:GetChildren()) do
-            if v:IsA("ForceField") then
-                v:Destroy()
-            end
-        end
-        print("[VD] God V3 Disabled")
-        return
-    end
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    local hrp = Character:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
-    
-    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    
-    local ff = Instance.new("ForceField")
-    ff.Parent = Character
-    ff.Visible = false
-    
-    godConnections.GodV3 = hum.HealthChanged:Connect(function(health)
-        if health < hum.MaxHealth then
-            hum.Health = hum.MaxHealth
-        end
-    end)
-    
-    godConnections.GodV3Touched = hrp.Touched:Connect(function(hit)
-        if hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
-            return
-        end
-        if hit.Name == "Spike" or hit.Name == "Trap" or hit.Name == "Kill" or hit.Name == "Lava" then
-            pcall(function()
-                hit.CanTouch = false
-                hit.CanCollide = false
-            end)
-        end
-    end)
-    
-    print("[VD] God V3 Enabled - Force Field + Touch Block")
-end
-
-local function GodV4(enabled)
-    if not enabled then
-        if godConnections.GodV4 then
-            godConnections.GodV4:Disconnect()
-            godConnections.GodV4 = nil
-        end
-        if godConnections.GodV4Respawn then
-            godConnections.GodV4Respawn:Disconnect()
-            godConnections.GodV4Respawn = nil
-        end
-        if godConnections.GodV4Damage then
-            godConnections.GodV4Damage:Disconnect()
-            godConnections.GodV4Damage = nil
-        end
-        for _, v in pairs(Character:GetChildren()) do
-            if v:IsA("ForceField") then
-                v:Destroy()
-            end
-        end
-        print("[VD] God V4 Disabled")
-        return
-    end
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    local hrp = Character:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
-    
-    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    hum.MaxHealth = 999999
-    hum.Health = 999999
-    
-    for _, v in pairs(Character:GetDescendants()) do
-        if v:IsA("Script") or v:IsA("LocalScript") then
-            if v.Name:lower():find("damage") or v.Name:lower():find("kill") or v.Name:lower():find("death") then
-                v:Destroy()
-            end
-        end
-    end
-    
-    local ff = Instance.new("ForceField")
-    ff.Parent = Character
-    ff.Visible = false
-    
-    godConnections.GodV4 = RunService.Heartbeat:Connect(function()
-        if hum.Health < 999999 then
-            hum.Health = 999999
-        end
-        
-        for _, effect in pairs(hum:GetChildren()) do
-            if effect:IsA("NumberValue") or effect:IsA("StringValue") then
-                if effect.Name:lower():find("damage") or effect.Name:lower():find("poison") or effect.Name:lower():find("burn") then
-                    effect:Destroy()
-                end
-            end
-        end
-    end)
-    
-    godConnections.GodV4Damage = hum:GetPropertyChangedSignal("Health"):Connect(function()
-        if hum.Health < 999999 then
-            hum.Health = 999999
-        end
-    end)
-    
-    godConnections.GodV4Respawn = hum.Died:Connect(function()
-        hum.Health = 999999
-        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    end)
-    
-    for _, v in pairs(Workspace:GetDescendants()) do
-        if v:IsA("BasePart") then
-            if v.Name:lower():find("kill") or v.Name:lower():find("death") or v.Name:lower():find("trap") or v.Name:lower():find("spike") or v.Name:lower():find("lava") then
-                pcall(function()
-                    v.CanTouch = false
-                    v.CanCollide = false
-                    v.Transparency = 0.8
-                end)
-            end
-        end
-    end
-    
-    print("[VD] God V4 Enabled - ULTIMATE PROTECTION")
-end
-
-local function GodV5(enabled)
-    if not enabled then
-        if godConnections.GodV5 then
-            godConnections.GodV5:Disconnect()
-            godConnections.GodV5 = nil
-        end
-        if godConnections.GodV5Part then
-            godConnections.GodV5Part:Disconnect()
-            godConnections.GodV5Part = nil
-        end
-        for _, part in pairs(protectionParts) do
-            if part and part.Parent then
-                part:Destroy()
-            end
-        end
-        protectionParts = {}
-        for _, v in pairs(Character:GetChildren()) do
-            if v:IsA("ForceField") then
-                v:Destroy()
-            end
-        end
-        print("[VD] God V5 Disabled")
-        return
-    end
-    
-    local hum = Character:FindFirstChild("Humanoid")
-    local hrp = Character:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
-    
-    -- ULTIMATE PROTECTION
-    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    hum.MaxHealth = math.huge
-    hum.Health = math.huge
-    
-    -- Invisible Force Field
-    local ff = Instance.new("ForceField")
-    ff.Parent = Character
-    ff.Visible = false
-    
-    -- Create Transparent Protection Barrier
     local barrier = Instance.new("Part")
-    barrier.Name = "ProtectionBarrier"
-    barrier.Parent = Character
-    barrier.Size = Vector3.new(10, 10, 10)
+    barrier.Name = "ProtectionField"
+    barrier.Parent = char
+    barrier.Size = Vector3.new(8, 8, 8)
     barrier.Shape = Enum.PartType.Ball
-    barrier.Transparency = 0.95
+    barrier.Transparency = 0.98
     barrier.Material = Enum.Material.ForceField
-    barrier.Color = Color3.fromRGB(100, 200, 255)
+    barrier.Color = Color3.fromRGB(255, 255, 255)
     barrier.CanCollide = false
     barrier.Anchored = false
     barrier.Massless = true
     barrier.CastShadow = false
     
-    local weld = Instance.new("Weld")
+    local weld = Instance.new("WeldConstraint")
     weld.Parent = barrier
     weld.Part0 = hrp
     weld.Part1 = barrier
-    weld.C0 = CFrame.new(0, 0, 0)
     
-    table.insert(protectionParts, barrier)
+    connections.healthLock = hum:GetPropertyChangedSignal("Health"):Connect(function()
+        if hum.Health ~= math.huge and hum.Health < oldHealth then
+            hum.Health = math.huge
+        end
+    end)
     
-    -- Visual glow effect
-    local attachment = Instance.new("Attachment", barrier)
-    local particle = Instance.new("ParticleEmitter", attachment)
-    particle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-    particle.Size = NumberSequence.new(0.5)
-    particle.Transparency = NumberSequence.new(0.9)
-    particle.Lifetime = NumberRange.new(1)
-    particle.Rate = 20
-    particle.Speed = NumberRange.new(0.5)
-    particle.Color = ColorSequence.new(Color3.fromRGB(100, 200, 255))
-    
-    -- MEGA HEALTH PROTECTION
-    godConnections.GodV5 = RunService.Heartbeat:Connect(function()
-        -- Force max health
-        if hum.Health < math.huge then
+    connections.cleanEffects = RunService.Heartbeat:Connect(function()
+        if hum.Health ~= math.huge then
             hum.Health = math.huge
         end
         
-        -- Remove ALL negative effects
-        for _, child in pairs(hum:GetChildren()) do
-            if child:IsA("NumberValue") or child:IsA("StringValue") or child:IsA("ObjectValue") then
-                child:Destroy()
+        for _, v in pairs(hum:GetChildren()) do
+            if v:IsA("NumberValue") or v:IsA("StringValue") then
+                v:Destroy()
             end
         end
         
-        -- Remove damage scripts from character
-        for _, script in pairs(Character:GetDescendants()) do
-            if script:IsA("Script") or script:IsA("LocalScript") then
-                if script.Name:lower():find("damage") or 
-                   script.Name:lower():find("kill") or 
-                   script.Name:lower():find("death") or 
-                   script.Name:lower():find("harm") or
-                   script.Name:lower():find("hurt") then
-                    script:Destroy()
-                end
-            end
+        if hum:GetState() == Enum.HumanoidStateType.Dead then
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
-        
-        -- Disable death state
-        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
     end)
     
-    -- Nullify ALL kill parts
-    godConnections.GodV5Part = RunService.Stepped:Connect(function()
-        for _, v in pairs(Workspace:GetDescendants()) do
-            if v:IsA("BasePart") then
-                local name = v.Name:lower()
-                if name:find("kill") or name:find("death") or name:find("trap") or 
-                   name:find("spike") or name:find("lava") or name:find("fire") or
-                   name:find("poison") or name:find("damage") then
+    connections.partKiller = RunService.Stepped:Connect(function()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                local name = obj.Name:lower()
+                if name:match("kill") or name:match("death") or name:match("lava") or 
+                   name:match("trap") or name:match("spike") or name:match("void") or
+                   name:match("hurt") or name:match("fire") or name:match("poison") or
+                   name:match("damage") then
                     pcall(function()
-                        v.CanTouch = false
-                        v.CanCollide = false
-                        v.Transparency = 0.95
+                        obj.CanTouch = false
+                        obj.CanCollide = false
                     end)
                 end
             end
         end
-        
-        -- Make character parts indestructible
-        for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
+    end)
+    
+    connections.scriptKill = RunService.Heartbeat:Connect(function()
+        for _, obj in pairs(char:GetDescendants()) do
+            if obj:IsA("Script") or obj:IsA("LocalScript") then
+                local name = obj.Name:lower()
+                if name:match("kill") or name:match("damage") or name:match("death") or name:match("anti") then
+                    obj.Disabled = true
+                    task.wait()
+                    obj:Destroy()
+                end
             end
         end
     end)
     
-    -- Block remote events that can kill
-    for _, remote in pairs(game:GetDescendants()) do
-        if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-            if remote.Name:lower():find("damage") or remote.Name:lower():find("kill") or remote.Name:lower():find("death") then
+    local lastPos = hrp.CFrame
+    connections.voidProtect = RunService.Heartbeat:Connect(function()
+        if hrp.Position.Y > -50 then
+            lastPos = hrp.CFrame
+        end
+        if hrp.Position.Y < -100 then
+            hrp.CFrame = lastPos
+            hum.Health = math.huge
+        end
+    end)
+    
+    for _, v in pairs(game:GetDescendants()) do
+        if v:IsA("RemoteEvent") then
+            local name = v.Name:lower()
+            if name:match("damage") or name:match("kill") or name:match("death") then
                 pcall(function()
-                    remote:Destroy()
+                    v:Destroy()
                 end)
             end
         end
     end
     
-    print("[VD] God V5 Enabled - INVINCIBLE BARRIER")
+    connections.touchBlock = barrier.Touched:Connect(function(hit)
+        if hit and hit.Parent and not hit.Parent:FindFirstChild("Humanoid") then
+            pcall(function()
+                hit.CanTouch = false
+            end)
+        end
+    end)
+    
+    connections.charProtect = char.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            char.Parent = Workspace
+        end
+    end)
+    
+    print("[God] Immortality Activated")
 end
 
--- ESP Functions - 4 Versions
-local espObjects = {}
-
-local function RemoveAllESP()
-    for plr, _ in pairs(espObjects) do
-        if espObjects[plr] and espObjects[plr].esp then
-            espObjects[plr].esp:Destroy()
+local function disableGod()
+    if not immortal then return end
+    immortal = false
+    
+    for name, con in pairs(connections) do
+        if con then
+            con:Disconnect()
         end
-        espObjects[plr] = nil
+        connections[name] = nil
+    end
+    
+    local hum = char:FindFirstChild("RealHumanoid")
+    if hum then
+        hum.Name = "Humanoid"
+        hum.Health = oldHealth
+        hum.MaxHealth = 100
+        for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+            pcall(function()
+                hum:SetStateEnabled(state, true)
+            end)
+        end
+    end
+    
+    local fake = char:FindFirstChild("FakeHumanoid")
+    if fake then fake:Destroy() end
+    
+    local barrier = char:FindFirstChild("ProtectionField")
+    if barrier then barrier:Destroy() end
+    
+    print("[God] Immortality Deactivated")
+end
+
+-- ikaxzu VIP Remove
+local vipConnection
+local function enableVIPRemove()
+    if vipConnection then return end
+    
+    vipConnection = RunService.Heartbeat:Connect(function()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") or obj:IsA("Model") then
+                -- Check for VIP/Gamepass objects
+                local name = obj.Name:lower()
+                local hasBadge = obj:FindFirstChild("GamepassRequired") or 
+                                 obj:FindFirstChild("VIPOnly") or 
+                                 obj:FindFirstChild("PremiumOnly") or
+                                 obj:FindFirstChild("BadgeRequired")
+                
+                -- Common VIP object names
+                if name:match("vip") or name:match("premium") or name:match("gamepass") or 
+                   name:match("donate") or name:match("robux") or name:match("safe") or
+                   name:match("badge") or hasBadge then
+                    
+                    if not removedObjects[obj] then
+                        pcall(function()
+                            -- Make transparent and non-collidable
+                            if obj:IsA("BasePart") then
+                                obj.Transparency = 1
+                                obj.CanCollide = false
+                                obj.CanTouch = false
+                                
+                                -- Remove collision
+                                for _, child in pairs(obj:GetDescendants()) do
+                                    if child:IsA("BasePart") then
+                                        child.Transparency = 1
+                                        child.CanCollide = false
+                                        child.CanTouch = false
+                                    end
+                                end
+                            elseif obj:IsA("Model") then
+                                -- Hide entire model
+                                for _, part in pairs(obj:GetDescendants()) do
+                                    if part:IsA("BasePart") then
+                                        part.Transparency = 1
+                                        part.CanCollide = false
+                                        part.CanTouch = false
+                                    elseif part:IsA("Decal") or part:IsA("Texture") then
+                                        part.Transparency = 1
+                                    elseif part:IsA("SurfaceGui") or part:IsA("BillboardGui") then
+                                        part.Enabled = false
+                                    end
+                                end
+                            end
+                            
+                            removedObjects[obj] = true
+                            print("[VIP] Removed:", obj.Name)
+                        end)
+                    end
+                end
+            end
+        end
+    end)
+    
+    print("[VIP] ikaxzu VIP Remover Enabled")
+end
+
+local function disableVIPRemove()
+    if vipConnection then
+        vipConnection:Disconnect()
+        vipConnection = nil
+    end
+    removedObjects = {}
+    print("[VIP] ikaxzu VIP Remover Disabled")
+end
+
+-- Wings Function
+local function createWings()
+    if wingsModel then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    wingsModel = Instance.new("Model")
+    wingsModel.Name = "AngelWings"
+    wingsModel.Parent = char
+    
+    -- Left Wing
+    local leftWing = Instance.new("Part")
+    leftWing.Name = "LeftWing"
+    leftWing.Parent = wingsModel
+    leftWing.Size = Vector3.new(0.2, 4, 2)
+    leftWing.Material = Enum.Material.Neon
+    leftWing.Color = Color3.fromRGB(255, 255, 255)
+    leftWing.Transparency = 0.3
+    leftWing.CanCollide = false
+    leftWing.Massless = true
+    leftWing.CastShadow = false
+    
+    local leftMesh = Instance.new("SpecialMesh", leftWing)
+    leftMesh.MeshType = Enum.MeshType.FileMesh
+    leftMesh.MeshId = "rbxassetid://2520762076"
+    leftMesh.Scale = Vector3.new(1.5, 1.5, 1.5)
+    
+    local leftWeld = Instance.new("Weld")
+    leftWeld.Parent = leftWing
+    leftWeld.Part0 = hrp
+    leftWeld.Part1 = leftWing
+    leftWeld.C0 = CFrame.new(-1, 0.5, -0.5) * CFrame.Angles(0, math.rad(15), 0)
+    
+    -- Right Wing
+    local rightWing = Instance.new("Part")
+    rightWing.Name = "RightWing"
+    rightWing.Parent = wingsModel
+    rightWing.Size = Vector3.new(0.2, 4, 2)
+    rightWing.Material = Enum.Material.Neon
+    rightWing.Color = Color3.fromRGB(255, 255, 255)
+    rightWing.Transparency = 0.3
+    rightWing.CanCollide = false
+    rightWing.Massless = true
+    rightWing.CastShadow = false
+    
+    local rightMesh = Instance.new("SpecialMesh", rightWing)
+    rightMesh.MeshType = Enum.MeshType.FileMesh
+    rightMesh.MeshId = "rbxassetid://2520762076"
+    rightMesh.Scale = Vector3.new(1.5, 1.5, 1.5)
+    
+    local rightWeld = Instance.new("Weld")
+    rightWeld.Parent = rightWing
+    rightWeld.Part0 = hrp
+    rightWeld.Part1 = rightWing
+    rightWeld.C0 = CFrame.new(1, 0.5, -0.5) * CFrame.Angles(0, math.rad(-15), 0)
+    
+    -- Wing Animation
+    connections.wingAnim = RunService.RenderStepped:Connect(function()
+        local time = tick()
+        local wave = math.sin(time * 3) * 0.2
+        
+        leftWeld.C0 = CFrame.new(-1, 0.5, -0.5) * CFrame.Angles(0, math.rad(15 + wave * 10), wave * 0.5)
+        rightWeld.C0 = CFrame.new(1, 0.5, -0.5) * CFrame.Angles(0, math.rad(-15 - wave * 10), -wave * 0.5)
+    end)
+    
+    print("[Wings] Angel Wings Equipped")
+end
+
+local function removeWings()
+    if wingsModel then
+        wingsModel:Destroy()
+        wingsModel = nil
+    end
+    if connections.wingAnim then
+        connections.wingAnim:Disconnect()
+        connections.wingAnim = nil
+    end
+    print("[Wings] Angel Wings Removed")
+end
+
+-- Halo Function
+local function createHalo()
+    if haloModel then return end
+    
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+    
+    haloModel = Instance.new("Part")
+    haloModel.Name = "Halo"
+    haloModel.Parent = char
+    haloModel.Size = Vector3.new(2, 0.2, 2)
+    haloModel.Shape = Enum.PartType.Cylinder
+    haloModel.Material = Enum.Material.Neon
+    haloModel.Color = Color3.fromRGB(255, 255, 255)
+    haloModel.Transparency = 0.2
+    haloModel.CanCollide = false
+    haloModel.Massless = true
+    haloModel.CastShadow = false
+    
+    local light = Instance.new("PointLight", haloModel)
+    light.Brightness = 2
+    light.Color = Color3.fromRGB(255, 255, 255)
+    light.Range = 10
+    
+    local weld = Instance.new("Weld")
+    weld.Parent = haloModel
+    weld.Part0 = head
+    weld.Part1 = haloModel
+    weld.C0 = CFrame.new(0, 1, 0) * CFrame.Angles(0, 0, math.rad(90))
+    
+    -- Halo Rotation
+    connections.haloAnim = RunService.RenderStepped:Connect(function()
+        weld.C0 = weld.C0 * CFrame.Angles(0, math.rad(2), 0)
+    end)
+    
+    print("[Halo] Angel Halo Equipped")
+end
+
+local function removeHalo()
+    if haloModel then
+        haloModel:Destroy()
+        haloModel = nil
+    end
+    if connections.haloAnim then
+        connections.haloAnim:Disconnect()
+        connections.haloAnim = nil
+    end
+    print("[Halo] Angel Halo Removed")
+end
+
+-- ESP Functions
+local function clearESP()
+    for _, data in pairs(espData) do
+        if data.obj then
+            data.obj:Destroy()
+        end
+    end
+    espData = {}
+end
+
+local function createESP(player)
+    if espData[player] or not player.Character then return end
+    
+    local c = player.Character
+    local h = c:FindFirstChild("HumanoidRootPart")
+    if not h then return end
+    
+    if settings.espMode == 1 then
+        local b = Instance.new("BillboardGui")
+        b.Parent = h
+        b.AlwaysOnTop = true
+        b.Size = UDim2.new(0, 100, 0, 40)
+        b.StudsOffset = Vector3.new(0, 2, 0)
+        
+        local f = Instance.new("Frame", b)
+        f.Size = UDim2.new(1, 0, 1, 0)
+        f.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        f.BackgroundTransparency = 0.5
+        f.BorderSizePixel = 0
+        
+        local c1 = Instance.new("UICorner", f)
+        c1.CornerRadius = UDim.new(0, 4)
+        
+        local n = Instance.new("TextLabel", f)
+        n.Size = UDim2.new(1, 0, 0.5, 0)
+        n.BackgroundTransparency = 1
+        n.Font = Enum.Font.GothamBold
+        n.Text = player.Name
+        n.TextColor3 = Color3.fromRGB(255, 255, 255)
+        n.TextSize = 10
+        n.TextScaled = true
+        
+        local d = Instance.new("TextLabel", f)
+        d.Position = UDim2.new(0, 0, 0.5, 0)
+        d.Size = UDim2.new(1, 0, 0.5, 0)
+        d.BackgroundTransparency = 1
+        d.Font = Enum.Font.Gotham
+        d.TextColor3 = Color3.fromRGB(200, 200, 200)
+        d.TextSize = 9
+        d.TextScaled = true
+        
+        espData[player] = {obj = b, dist = d, frame = f}
+        
+    elseif settings.espMode == 2 then
+        local box = Instance.new("BoxHandleAdornment")
+        box.Parent = h
+        box.Size = c:GetExtentsSize()
+        box.Adornee = h
+        box.AlwaysOnTop = true
+        box.ZIndex = 5
+        box.Color3 = Color3.fromRGB(255, 255, 255)
+        box.Transparency = 0.5
+        
+        espData[player] = {obj = box}
+        
+    elseif settings.espMode == 3 then
+        local hl = Instance.new("Highlight")
+        hl.Parent = c
+        hl.FillColor = Color3.fromRGB(255, 255, 255)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0
+        
+        espData[player] = {obj = hl}
     end
 end
 
--- ESP V1 - Minimal (Name + Distance)
-local function AddESPV1(plr)
-    if espObjects[plr] or not plr.Character then return end
-    
-    local char = plr.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local esp = Instance.new("BillboardGui")
-    esp.Parent = hrp
-    esp.AlwaysOnTop = true
-    esp.Size = UDim2.new(0, 80, 0, 40)
-    esp.StudsOffset = Vector3.new(0, 2, 0)
-    
-    local frame = Instance.new("Frame", esp)
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.7
-    frame.BorderSizePixel = 0
-    
-    local corner = Instance.new("UICorner", frame)
-    corner.CornerRadius = UDim.new(0, 4)
-    
-    local name = Instance.new("TextLabel", frame)
-    name.Size = UDim2.new(1, 0, 0.5, 0)
-    name.BackgroundTransparency = 1
-    name.Font = Enum.Font.GothamBold
-    name.Text = plr.Name
-    name.TextColor3 = Color3.fromRGB(255, 255, 255)
-    name.TextSize = 11
-    name.TextScaled = true
-    
-    local dist = Instance.new("TextLabel", frame)
-    dist.Position = UDim2.new(0, 0, 0.5, 0)
-    dist.Size = UDim2.new(1, 0, 0.5, 0)
-    dist.BackgroundTransparency = 1
-    dist.Font = Enum.Font.Gotham
-    dist.TextColor3 = Color3.fromRGB(200, 200, 200)
-    dist.TextSize = 10
-    dist.TextScaled = true
-    
-    espObjects[plr] = {esp = esp, frame = frame, dist = dist}
-end
-
--- ESP V2 - Box ESP (3D Box)
-local function AddESPV2(plr)
-    if espObjects[plr] or not plr.Character then return end
-    
-    local char = plr.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local box = Instance.new("BoxHandleAdornment")
-    box.Parent = hrp
-    box.Size = Vector3.new(4, 5, 1)
-    box.Adornee = hrp
-    box.AlwaysOnTop = true
-    box.ZIndex = 5
-    box.Color3 = Color3.fromRGB(255, 255, 255)
-    box.Transparency = 0.7
-    
-    local esp = Instance.new("BillboardGui")
-    esp.Parent = hrp
-    esp.AlwaysOnTop = true
-    esp.Size = UDim2.new(0, 60, 0, 20)
-    esp.StudsOffset = Vector3.new(0, 3, 0)
-    
-    local name = Instance.new("TextLabel", esp)
-    name.Size = UDim2.new(1, 0, 1, 0)
-    name.BackgroundTransparency = 1
-    name.Font = Enum.Font.GothamBold
-    name.Text = plr.Name
-    name.TextColor3 = Color3.fromRGB(255, 255, 255)
-    name.TextSize = 12
-    name.TextStrokeTransparency = 0.5
-    
-    espObjects[plr] = {esp = esp, box = box}
-end
-
--- ESP V3 - Health Bar ESP
-local function AddESPV3(plr)
-    if espObjects[plr] or not plr.Character then return end
-    
-    local char = plr.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local hum = char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    
-    local esp = Instance.new("BillboardGui")
-    esp.Parent = hrp
-    esp.AlwaysOnTop = true
-    esp.Size = UDim2.new(0, 100, 0, 60)
-    esp.StudsOffset = Vector3.new(0, 2.5, 0)
-    
-    local frame = Instance.new("Frame", esp)
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    frame.BackgroundTransparency = 0.5
-    frame.BorderSizePixel = 0
-    
-    local corner = Instance.new("UICorner", frame)
-    corner.CornerRadius = UDim.new(0, 5)
-    
-    local name = Instance.new("TextLabel", frame)
-    name.Size = UDim2.new(1, 0, 0.3, 0)
-    name.BackgroundTransparency = 1
-    name.Font = Enum.Font.GothamBold
-    name.Text = plr.Name
-    name.TextColor3 = Color3.fromRGB(255, 255, 255)
-    name.TextSize = 12
-    
-    local healthBar = Instance.new("Frame", frame)
-    healthBar.Position = UDim2.new(0.1, 0, 0.4, 0)
-    healthBar.Size = UDim2.new(0.8, 0, 0.15, 0)
-    healthBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    healthBar.BorderSizePixel = 0
-    
-    local healthCorner = Instance.new("UICorner", healthBar)
-    healthCorner.CornerRadius = UDim.new(1, 0)
-    
-    local healthFill = Instance.new("Frame", healthBar)
-    healthFill.Size = UDim2.new(1, 0, 1, 0)
-    healthFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    healthFill.BorderSizePixel = 0
-    
-    local fillCorner = Instance.new("UICorner", healthFill)
-    fillCorner.CornerRadius = UDim.new(1, 0)
-    
-    local dist = Instance.new("TextLabel", frame)
-    dist.Position = UDim2.new(0, 0, 0.65, 0)
-    dist.Size = UDim2.new(1, 0, 0.3, 0)
-    dist.BackgroundTransparency = 1
-    dist.Font = Enum.Font.Gotham
-    dist.TextColor3 = Color3.fromRGB(200, 200, 200)
-    dist.TextSize = 10
-    
-    espObjects[plr] = {esp = esp, frame = frame, dist = dist, healthFill = healthFill, hum = hum}
-end
-
--- ESP V4 - Chams (Highlight)
-local function AddESPV4(plr)
-    if espObjects[plr] or not plr.Character then return end
-    
-    local char = plr.Character
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Parent = char
-    highlight.FillColor = Color3.fromRGB(255, 255, 255)
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    
-    local esp = Instance.new("BillboardGui")
-    esp.Parent = char:FindFirstChild("HumanoidRootPart")
-    esp.AlwaysOnTop = true
-    esp.Size = UDim2.new(0, 80, 0, 25)
-    esp.StudsOffset = Vector3.new(0, 3, 0)
-    
-    local name = Instance.new("TextLabel", esp)
-    name.Size = UDim2.new(1, 0, 0.6, 0)
-    name.BackgroundTransparency = 1
-    name.Font = Enum.Font.GothamBold
-    name.Text = plr.Name
-    name.TextColor3 = Color3.fromRGB(255, 255, 255)
-    name.TextSize = 13
-    name.TextStrokeTransparency = 0.3
-    
-    local dist = Instance.new("TextLabel", esp)
-    dist.Position = UDim2.new(0, 0, 0.6, 0)
-    dist.Size = UDim2.new(1, 0, 0.4, 0)
-    dist.BackgroundTransparency = 1
-    dist.Font = Enum.Font.Gotham
-    dist.TextColor3 = Color3.fromRGB(200, 200, 200)
-    dist.TextSize = 11
-    dist.TextStrokeTransparency = 0.3
-    
-    espObjects[plr] = {esp = esp, highlight = highlight, dist = dist}
-end
-
-local function UpdateESP()
-    for plr, data in pairs(espObjects) do
-        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("HumanoidRootPart") then
-            local d = (plr.Character.HumanoidRootPart.Position - Character.HumanoidRootPart.Position).Magnitude
+local function updateESP()
+    for player, data in pairs(espData) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+            local dist = (player.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
             
             if data.dist then
-                data.dist.Text = math.floor(d) .. "m"
+                data.dist.Text = math.floor(dist) .. "m"
             end
             
-            if data.healthFill and data.hum then
-                local healthPercent = data.hum.Health / data.hum.MaxHealth
-                data.healthFill.Size = UDim2.new(healthPercent, 0, 1, 0)
-                data.healthFill.BackgroundColor3 = healthPercent > 0.5 and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-            end
-            
-            if cfg.espRGB then
-                local hue = tick() % 5 / 5
-                local color = Color3.fromHSV(hue, 1, 1)
-                
-                if data.frame then
-                    data.frame.BackgroundColor3 = color
-                end
-                if data.box then
-                    data.box.Color3 = color
-                end
-                if data.highlight then
-                    data.highlight.FillColor = color
-                    data.highlight.OutlineColor = color
+            if settings.espRgb and data.frame then
+                data.frame.BackgroundColor3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+            elseif settings.espRgb and data.obj then
+                if data.obj:IsA("BoxHandleAdornment") then
+                    data.obj.Color3 = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+                elseif data.obj:IsA("Highlight") then
+                    data.obj.FillColor = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+                    data.obj.OutlineColor = Color3.fromHSV(tick() % 5 / 5, 1, 1)
                 end
             end
         end
     end
 end
 
--- Aim FOV Functions
-local function GetClosestInFOV()
-    local closest, dist = nil, cfg.aimfov
-    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+-- Aim Functions
+local function getClosestInFOV()
+    local closest = nil
+    local minDist = settings.aimfov
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
     
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            local hrp = plr.Character.HumanoidRootPart
-            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-            
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if onScreen then
-                local screenPos2D = Vector2.new(screenPos.X, screenPos.Y)
-                local distanceFromCenter = (screenPos2D - screenCenter).Magnitude
-                
-                if distanceFromCenter < dist then
-                    closest = plr
-                    dist = distanceFromCenter
+                local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                if dist < minDist then
+                    closest = p
+                    minDist = dist
                 end
             end
         end
@@ -1060,243 +894,130 @@ local function GetClosestInFOV()
 end
 
 -- Build UI
-local ESP = Tab("ESP")
-local Move = Tab("Move")
-local Combat = Tab("Combat")
-local Visual = Tab("Visual")
-local TP = Tab("TP")
-
--- ESP Tab
-Toggle(ESP, "ESP Enabled", function(v)
-    cfg.esp = v
+label("ESP")
+toggle_option("ESP Enabled", function(v)
+    settings.esp = v
     if v then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player then
-                if cfg.espMode == 1 then
-                    AddESPV1(plr)
-                elseif cfg.espMode == 2 then
-                    AddESPV2(plr)
-                elseif cfg.espMode == 3 then
-                    AddESPV3(plr)
-                elseif cfg.espMode == 4 then
-                    AddESPV4(plr)
-                end
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then
+                createESP(p)
             end
         end
     else
-        RemoveAllESP()
+        clearESP()
     end
 end)
 
-Btn(ESP, "ESP V1 - Minimal", function()
-    cfg.espMode = 1
-    RemoveAllESP()
-    if cfg.esp then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player then
-                AddESPV1(plr)
-            end
+button("Mode: Simple", function()
+    settings.espMode = 1
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
         end
     end
-    print("[VD] ESP Mode: V1 - Minimal")
 end)
 
-Btn(ESP, "ESP V2 - Box", function()
-    cfg.espMode = 2
-    RemoveAllESP()
-    if cfg.esp then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player then
-                AddESPV2(plr)
-            end
+button("Mode: Box", function()
+    settings.espMode = 2
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
         end
     end
-    print("[VD] ESP Mode: V2 - Box")
 end)
 
-Btn(ESP, "ESP V3 - Health Bar", function()
-    cfg.espMode = 3
-    RemoveAllESP()
-    if cfg.esp then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player then
-                AddESPV3(plr)
-            end
+button("Mode: Highlight", function()
+    settings.espMode = 3
+    clearESP()
+    if settings.esp then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= plr then createESP(p) end
         end
     end
-    print("[VD] ESP Mode: V3 - Health Bar")
 end)
 
-Btn(ESP, "ESP V4 - Chams", function()
-    cfg.espMode = 4
-    RemoveAllESP()
-    if cfg.esp then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player then
-                AddESPV4(plr)
-            end
-        end
-    end
-    print("[VD] ESP Mode: V4 - Chams")
+toggle_option("RGB Mode", function(v)
+    settings.espRgb = v
 end)
 
-Toggle(ESP, "RGB Mode", function(v)
-    cfg.espRGB = v
+label("MOVEMENT")
+slider("Speed", 16, 500, 16, function(v)
+    settings.speed = v
 end)
 
--- Movement
-Slider(Move, "Speed", 16, 500, 16, function(v)
-    cfg.speed = v
-    if Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.WalkSpeed = v
-    end
-end)
-
-Slider(Move, "Jump", 50, 500, 50, function(v)
-    cfg.jump = v
-    if Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.JumpPower = v
-    end
+slider("Jump", 50, 500, 50, function(v)
+    settings.jump = v
 end)
 
 local noclipCon
-Toggle(Move, "Noclip", function(v)
-    cfg.noclip = v
+toggle_option("Noclip", function(v)
+    settings.noclip = v
     if v then
         noclipCon = RunService.Stepped:Connect(function()
-            for _, p in pairs(Character:GetDescendants()) do
+            for _, p in pairs(char:GetDescendants()) do
                 if p:IsA("BasePart") then
                     p.CanCollide = false
                 end
             end
         end)
     else
-        if noclipCon then
-            noclipCon:Disconnect()
-        end
+        if noclipCon then noclipCon:Disconnect() end
     end
 end)
 
 local flyCon
-Toggle(Move, "Fly", function(v)
-    cfg.fly = v
+toggle_option("Fly", function(v)
+    settings.fly = v
     if v then
-        local hrp = Character.HumanoidRootPart
-        
+        local hrp = char.HumanoidRootPart
         local bg = Instance.new("BodyGyro", hrp)
         bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bg.P = 9e9
-        
         local bv = Instance.new("BodyVelocity", hrp)
         bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Velocity = Vector3.new(0, 0, 0)
         
         flyCon = RunService.RenderStepped:Connect(function()
-            bg.CFrame = Camera.CFrame
-            local vel = Vector3.new(0, 0, 0)
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel = vel + Camera.CFrame.LookVector * cfg.flyspeed end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then vel = vel - Camera.CFrame.LookVector * cfg.flyspeed end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then vel = vel - Camera.CFrame.RightVector * cfg.flyspeed end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then vel = vel + Camera.CFrame.RightVector * cfg.flyspeed end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vel = vel + Vector3.new(0, cfg.flyspeed, 0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vel = vel - Vector3.new(0, cfg.flyspeed, 0) end
-            
+            bg.CFrame = cam.CFrame
+            local vel = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then vel = vel + cam.CFrame.LookVector * settings.flyspeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then vel = vel - cam.CFrame.LookVector * settings.flyspeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then vel = vel - cam.CFrame.RightVector * settings.flyspeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then vel = vel + cam.CFrame.RightVector * settings.flyspeed end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vel = vel + Vector3.new(0, settings.flyspeed, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then vel = vel - Vector3.new(0, settings.flyspeed, 0) end
             bv.Velocity = vel
         end)
     else
         if flyCon then flyCon:Disconnect() end
-        for _, v in pairs(Character.HumanoidRootPart:GetChildren()) do
-            if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then
-                v:Destroy()
-            end
+        for _, v in pairs(char.HumanoidRootPart:GetChildren()) do
+            if v:IsA("BodyGyro") or v:IsA("BodyVelocity") then v:Destroy() end
         end
     end
 end)
 
-Slider(Move, "Fly Speed", 10, 200, 50, function(v)
-    cfg.flyspeed = v
+slider("Fly Speed", 10, 200, 50, function(v)
+    settings.flyspeed = v
 end)
 
--- Combat Tab
-Toggle(Combat, "God V1 - Health Regen", function(v)
-    cfg.godv1 = v
+label("COMBAT")
+toggle_option("God Mode", function(v)
+    settings.god = v
     if v then
-        cfg.godv2 = false
-        cfg.godv3 = false
-        cfg.godv4 = false
-        cfg.godv5 = false
-        StopAllGod()
-        GodV1(true)
+        enableGod()
     else
-        GodV1(false)
-    end
-end)
-
-Toggle(Combat, "God V2 - Humanoid Replace", function(v)
-    cfg.godv2 = v
-    if v then
-        cfg.godv1 = false
-        cfg.godv3 = false
-        cfg.godv4 = false
-        cfg.godv5 = false
-        StopAllGod()
-        GodV2(true)
-    else
-        GodV2(false)
-    end
-end)
-
-Toggle(Combat, "God V3 - Force Field", function(v)
-    cfg.godv3 = v
-    if v then
-        cfg.godv1 = false
-        cfg.godv2 = false
-        cfg.godv4 = false
-        cfg.godv5 = false
-        StopAllGod()
-        GodV3(true)
-    else
-        GodV3(false)
-    end
-end)
-
-Toggle(Combat, "God V4 - ULTIMATE", function(v)
-    cfg.godv4 = v
-    if v then
-        cfg.godv1 = false
-        cfg.godv2 = false
-        cfg.godv3 = false
-        cfg.godv5 = false
-        StopAllGod()
-        GodV4(true)
-    else
-        GodV4(false)
-    end
-end)
-
-Toggle(Combat, "God V5 - INVINCIBLE", function(v)
-    cfg.godv5 = v
-    if v then
-        cfg.godv1 = false
-        cfg.godv2 = false
-        cfg.godv3 = false
-        cfg.godv4 = false
-        StopAllGod()
-        GodV5(true)
-    else
-        GodV5(false)
+        disableGod()
     end
 end)
 
 local aimCon
-Toggle(Combat, "Auto Aim", function(v)
-    cfg.aim = v
+toggle_option("Auto Aim", function(v)
+    settings.aim = v
     if v then
         aimCon = RunService.RenderStepped:Connect(function()
-            local target = GetClosestInFOV()
+            local target = getClosestInFOV()
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Character.HumanoidRootPart.Position)
             end
         end)
     else
@@ -1304,24 +1025,52 @@ Toggle(Combat, "Auto Aim", function(v)
     end
 end)
 
-Toggle(Combat, "Show FOV Circle", function(v)
-    cfg.aimcircle = v
-    FOVCircle.Visible = v
+toggle_option("Show FOV", function(v)
+    settings.showfov = v
+    fovCircle.Visible = v
 end)
 
-Slider(Combat, "FOV Size", 50, 500, 100, function(v)
-    cfg.aimfov = v
-    FOVCircle.Radius = v
+slider("FOV Size", 50, 500, 100, function(v)
+    settings.aimfov = v
 end)
 
--- Visual
-Toggle(Visual, "No Fog", function(v)
-    cfg.fog = v
+label("ikaxzu VIP")
+toggle_option("VIP Object Remover", function(v)
+    settings.vipremove = v
+    if v then
+        enableVIPRemove()
+    else
+        disableVIPRemove()
+    end
+end)
+
+label("COSMETICS")
+toggle_option("Angel Wings", function(v)
+    settings.wings = v
+    if v then
+        createWings()
+    else
+        removeWings()
+    end
+end)
+
+toggle_option("Angel Halo", function(v)
+    settings.halo = v
+    if v then
+        createHalo()
+    else
+        removeHalo()
+    end
+end)
+
+label("VISUAL")
+toggle_option("No Fog", function(v)
+    settings.fog = v
     Lighting.FogEnd = v and 100000 or 1000
 end)
 
-Toggle(Visual, "Full Bright", function(v)
-    cfg.bright = v
+toggle_option("Full Bright", function(v)
+    settings.bright = v
     if v then
         Lighting.Brightness = 2
         Lighting.ClockTime = 14
@@ -1333,11 +1082,10 @@ Toggle(Visual, "Full Bright", function(v)
 end)
 
 local crosshair
-Toggle(Visual, "Crosshair", function(v)
-    cfg.cross = v
+toggle_option("Crosshair", function(v)
+    settings.cross = v
     if v then
-        crosshair = Instance.new("ScreenGui", VD)
-        
+        crosshair = Instance.new("ScreenGui", gui)
         local function line(x, y, w, h)
             local l = Instance.new("Frame", crosshair)
             l.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1346,119 +1094,105 @@ Toggle(Visual, "Crosshair", function(v)
             l.Position = UDim2.new(0.5, x, 0.5, y)
             l.Size = UDim2.new(0, w, 0, h)
         end
-        
-        line(0, -10, 2, 8)
-        line(0, 10, 2, 8)
-        line(-10, 0, 8, 2)
-        line(10, 0, 8, 2)
+        line(0, -8, 1, 6)
+        line(0, 8, 1, 6)
+        line(-8, 0, 6, 1)
+        line(8, 0, 6, 1)
     else
         if crosshair then crosshair:Destroy() end
     end
 end)
 
-Slider(Visual, "FOV", 70, 120, 70, function(v)
-    cfg.fov = v
-    Camera.FieldOfView = v
+slider("FOV", 70, 120, 70, function(v)
+    settings.fov = v
+    cam.FieldOfView = v
 end)
 
--- Teleport
-Btn(TP, "TP to Closest", function()
-    local target = GetClosestInFOV()
+label("TELEPORT")
+button("TP Closest", function()
+    local target = getClosestInFOV()
     if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-        Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+        char.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
     end
 end)
 
-Btn(TP, "TP to Random", function()
-    local plrs = Players:GetPlayers()
-    if #plrs > 1 then
-        local rnd = plrs[math.random(1, #plrs)]
-        if rnd ~= Player and rnd.Character and rnd.Character:FindFirstChild("HumanoidRootPart") then
-            Character.HumanoidRootPart.CFrame = rnd.Character.HumanoidRootPart.CFrame
+button("TP Random", function()
+    local ps = Players:GetPlayers()
+    if #ps > 1 then
+        local rnd = ps[math.random(1, #ps)]
+        if rnd ~= plr and rnd.Character and rnd.Character:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = rnd.Character.HumanoidRootPart.CFrame
         end
     end
 end)
 
--- UI Control
-Open.MouseButton1Click:Connect(function()
-    Main.Visible = true
-    Main.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 400, 0, 450)}):Play()
+-- Events
+toggle.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+    if main.Visible then
+        main.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(main, TweenInfo.new(0.25), {Size = UDim2.new(0, 340, 0, 480)}):Play()
+    end
 end)
 
-Close.MouseButton1Click:Connect(function()
-    TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-    wait(0.3)
-    Main.Visible = false
+close.MouseButton1Click:Connect(function()
+    TweenService:Create(main, TweenInfo.new(0.25), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.25)
+    main.Visible = false
 end)
 
--- Update FOV Circle Position
 RunService.RenderStepped:Connect(function()
-    if Character:FindFirstChild("Humanoid") then
-        Character.Humanoid.WalkSpeed = cfg.speed
-        Character.Humanoid.JumpPower = cfg.jump
+    if char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = settings.speed
+        char.Humanoid.JumpPower = settings.jump
     end
     
-    -- Update FOV Circle
-    if cfg.aimcircle then
-        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        FOVCircle.Radius = cfg.aimfov
-        FOVCircle.Visible = true
+    if settings.showfov then
+        fovCircle.Position = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+        fovCircle.Radius = settings.aimfov
+        fovCircle.Visible = true
     else
-        FOVCircle.Visible = false
+        fovCircle.Visible = false
     end
     
-    -- Update ESP
-    if cfg.esp then
-        UpdateESP()
+    if settings.esp then
+        updateESP()
     end
 end)
 
--- Player Events
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        wait(1)
-        if cfg.esp then
-            if cfg.espMode == 1 then
-                AddESPV1(plr)
-            elseif cfg.espMode == 2 then
-                AddESPV2(plr)
-            elseif cfg.espMode == 3 then
-                AddESPV3(plr)
-            elseif cfg.espMode == 4 then
-                AddESPV4(plr)
-            end
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        task.wait(1)
+        if settings.esp then
+            createESP(p)
         end
     end)
 end)
 
-Player.CharacterAdded:Connect(function(char)
-    Character = char
-    wait(1)
+plr.CharacterAdded:Connect(function(c)
+    char = c
+    task.wait(1)
     
-    if cfg.godv1 then
-        GodV1(true)
-    elseif cfg.godv2 then
-        GodV2(true)
-    elseif cfg.godv3 then
-        GodV3(true)
-    elseif cfg.godv4 then
-        GodV4(true)
-    elseif cfg.godv5 then
-        GodV5(true)
+    if settings.god then
+        enableGod()
     end
-    
-    if cfg.noclip then
+    if settings.noclip then
         noclipCon = RunService.Stepped:Connect(function()
             for _, p in pairs(char:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    p.CanCollide = false
-                end
+                if p:IsA("BasePart") then p.CanCollide = false end
             end
         end)
     end
+    if settings.wings then
+        createWings()
+    end
+    if settings.halo then
+        createHalo()
+    end
+    if settings.vipremove then
+        enableVIPRemove()
+    end
 end)
 
-print("[VD] Loaded!")
-print("[VD] ESP Modes: V1-V4 | God Modes: V1-V5")
-print("[VD] FOV Aim Circle Ready")
+warn("ikaxzu scripter loaded successfully")
+warn("Features: God Mode, ESP, Aim, VIP Remover, Angel Wings, Halo")
