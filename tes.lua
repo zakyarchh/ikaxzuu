@@ -79,7 +79,7 @@ local tweenBounce = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirecti
 local tweenElastic = TweenInfo.new(0.5, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "vd_" .. math.random(1000, 9999)
+gui.Name = "vd_v4" .. math.random(1000, 9999)
 gui.Parent = getParent()
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -108,7 +108,7 @@ local toggleGlow = Instance.new("ImageLabel", toggleBtn)
 toggleGlow.BackgroundTransparency = 1
 toggleGlow.Size = UDim2.new(1, 30, 1, 30)
 toggleGlow.Position = UDim2.new(0, -15, 0, -15)
-toggleGlow.Image = "rbxassetid://5028857084"
+toggleGlow.Image = "rbxassetid://95444470065255"
 toggleGlow.ImageColor3 = col.accent
 toggleGlow.ImageTransparency = 0.85
 
